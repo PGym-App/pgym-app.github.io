@@ -1,0 +1,1038 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PGym</title>
+<meta name="description" content="PGym zeigt dir, welche Übungen du am längsten nicht mehr gemacht hast.">
+<meta name="theme-color" content="#0B0D0C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PGym">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#0B0D0C; --surface:#151917; --surface-2:#1E2421; --surface-3:#262D29; --line:#262C29;
+  --ink:#F1F5F2; --ink-2:#97A29C; --ink-3:#66716B;
+  --accent:#C6FF3D; --accent-ink:#0B0D0C; --accent-soft:rgba(198,255,61,.12);
+  --mid:#FFB547; --old:#FF6B5A; --fresh:#6FD39A;
+  --radius:16px;
+  --font:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-display:-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --top:env(safe-area-inset-top); --bottom:env(safe-area-inset-bottom);
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.4}
+body{min-height:100dvh;-webkit-font-smoothing:antialiased;overscroll-behavior-y:none}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+svg{display:block}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* Kopfzeile */
+.top{position:sticky;top:0;z-index:20;background:rgba(11,13,12,.86);-webkit-backdrop-filter:saturate(1.4) blur(18px);backdrop-filter:saturate(1.4) blur(18px);padding:calc(var(--top) + 10px) 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid transparent;transition:border-color .2s}
+.top.scrolled{border-bottom-color:var(--line)}
+.top .logo{width:34px;height:34px;flex:none}
+.top h1{margin:0;font:800 24px/1 var(--font-display);letter-spacing:-.02em}
+.top h1 span{color:var(--accent)}
+.top .today{margin-left:auto;font-size:13px;color:var(--ink-2);text-align:right}
+
+main{max-width:640px;margin:0 auto;padding:6px 16px calc(var(--bottom) + 96px)}
+.view[hidden]{display:none}
+h2{font:700 28px/1.1 var(--font-display);letter-spacing:-.02em;margin:10px 0 14px}
+
+/* Suche + Steuerung */
+.search{position:relative;display:block;margin:6px 0 12px}
+.search svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--ink-3);pointer-events:none}
+.search input{width:100%;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 40px 0 40px;font-size:16px;outline:none;transition:border-color .15s}
+.search input:focus{border-color:var(--accent)}
+.search input::placeholder{color:var(--ink-3)}
+.search .clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;color:var(--ink-2)}
+.search .clear[hidden]{display:none}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:3px;margin-bottom:12px;position:relative}
+.seg button{height:36px;border-radius:9px;font-size:14px;font-weight:600;color:var(--ink-2);position:relative;z-index:1;transition:color .2s}
+.seg button[aria-pressed="true"]{color:var(--accent-ink)}
+.seg .knob{position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:9px;background:var(--accent);transition:transform .28s cubic-bezier(.3,.7,.2,1)}
+.seg[data-mode="folder"] .knob{transform:translateX(100%)}
+.chips{display:flex;gap:8px;overflow-x:auto;margin:0 -16px 12px;padding:0 16px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips[hidden]{display:none}
+.chip{flex:none;height:34px;padding:0 14px;border-radius:17px;background:var(--surface);border:1px solid var(--line);font-size:14px;font-weight:500;color:var(--ink-2);transition:background .15s,color .15s,border-color .15s}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.summary{font-size:13px;color:var(--ink-2);margin:0 2px 8px;min-height:18px}
+.summary b{color:var(--accent);font-weight:600}
+
+/* Übungsliste */
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.group-h{display:flex;align-items:baseline;justify-content:space-between;margin:18px 2px 8px;font:700 13px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+.group-h:first-child{margin-top:4px}
+.group-h small{font-weight:500;text-transform:none;letter-spacing:0;font-size:12px;color:var(--ink-3)}
+.ex{width:100%;display:flex;align-items:center;gap:12px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px 12px 12px 14px;min-height:64px;transition:background .2s,border-color .2s,transform .12s}
+.ex:active{transform:scale(.985)}
+.ex .dot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--ink-3)}
+.ex[data-age="fresh"] .dot{background:var(--fresh)}
+.ex[data-age="mid"] .dot{background:var(--mid)}
+.ex[data-age="old"] .dot{background:var(--old)}
+.ex[data-age="never"] .dot{background:transparent;box-shadow:inset 0 0 0 2px var(--old)}
+.ex .txt{flex:1;min-width:0}
+.ex .name{display:block;font-size:17px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ex .meta{display:block;font-size:13px;color:var(--ink-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ex .meta .tag{color:var(--ink-3)}
+.ex .box{width:32px;height:32px;border-radius:50%;flex:none;border:2px solid var(--surface-3);display:grid;place-items:center;transition:background .2s,border-color .2s}
+.ex .box svg{width:18px;height:18px;color:var(--accent-ink);opacity:0;transform:scale(.4);transition:opacity .2s,transform .3s cubic-bezier(.3,1.6,.5,1)}
+.ex[data-age="done"]{background:linear-gradient(0deg,var(--accent-soft),var(--accent-soft)),var(--surface);border-color:rgba(198,255,61,.35)}
+.ex[data-age="done"] .dot{background:var(--accent)}
+.ex[data-age="done"] .meta{color:var(--accent)}
+.ex[data-age="done"] .box{background:var(--accent);border-color:var(--accent)}
+.ex[data-age="done"] .box svg{opacity:1;transform:none}
+.empty{text-align:center;color:var(--ink-2);padding:40px 16px}
+.empty p{margin:0 0 14px}
+
+/* Knöpfe */
+.btn{height:44px;padding:0 18px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);font-weight:600;font-size:15px;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .12s,background .15s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--old)}
+.btn.wide{width:100%}
+.btn svg{width:18px;height:18px}
+.row-btns{display:flex;gap:8px;margin-bottom:14px}
+.row-btns .btn{flex:1}
+
+/* Verlauf */
+.day{width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;display:block;margin-bottom:8px;transition:transform .12s}
+.day:active{transform:scale(.985)}
+.day .d{font-weight:700;font-size:17px;letter-spacing:-.01em}
+.day .n{font-size:13px;color:var(--ink-2);margin-top:2px}
+.day .names{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.day .names span{font-size:13px;background:var(--surface-2);border-radius:8px;padding:4px 9px;color:var(--ink)}
+.month{margin:18px 2px 8px;font:700 13px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+.month:first-of-type{margin-top:4px}
+
+/* Verwalten */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:12px 8px 12px 14px;border-bottom:1px solid var(--line)}
+.card-h b{font-size:17px;letter-spacing:-.01em}
+.card-h small{color:var(--ink-3);font-size:13px;margin-left:6px;font-weight:500}
+.icon-btn{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--ink-2)}
+.icon-btn:active{background:var(--surface-2)}
+.icon-btn svg{width:20px;height:20px}
+.item{width:100%;display:flex;align-items:center;justify-content:space-between;text-align:left;padding:0 14px;min-height:48px;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item:active{background:var(--surface-2)}
+.item svg{width:16px;height:16px;color:var(--ink-3)}
+.item.muted{color:var(--ink-3);font-size:14px;pointer-events:none}
+.note{font-size:13px;color:var(--ink-3);margin:6px 2px 14px}
+.section-t{margin:26px 2px 10px;font:700 13px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
+
+/* Tab-Leiste */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;padding:8px 16px calc(var(--bottom) + 8px);background:rgba(11,13,12,.9);-webkit-backdrop-filter:saturate(1.4) blur(18px);backdrop-filter:saturate(1.4) blur(18px);border-top:1px solid var(--line)}
+.tabbar .inner{display:grid;grid-template-columns:repeat(3,1fr);width:100%;max-width:420px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink-3);padding:4px 0;transition:color .15s}
+.tab svg{width:24px;height:24px}
+.tab[aria-current="page"]{color:var(--accent)}
+
+/* Toast */
+.toast{position:fixed;left:16px;right:16px;bottom:calc(var(--bottom) + 84px);z-index:40;max-width:420px;margin:0 auto;background:var(--surface-3);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);transform:translateY(20px);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.3,.7,.2,1),opacity .2s}
+.toast.show{transform:none;opacity:1;pointer-events:auto}
+.toast span{flex:1;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast button{height:36px;padding:0 12px;border-radius:10px;color:var(--accent);font-weight:700;font-size:14px}
+
+/* Blatt (Dialog) */
+dialog{border:0;padding:0;margin:auto 0 0;width:100%;max-width:100%;max-height:88dvh;background:var(--surface);color:var(--ink);border-radius:22px 22px 0 0;overflow:auto}
+@media (min-width:700px){dialog{margin:auto;max-width:480px;border-radius:22px}}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog[open]{animation:up .32s cubic-bezier(.3,.7,.2,1)}
+dialog[open]::backdrop{animation:fade .25s}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}
+@keyframes fade{from{opacity:0}}
+.sheet{padding:10px 16px calc(var(--bottom) + 18px)}
+.grab{width:38px;height:5px;border-radius:3px;background:var(--surface-3);margin:0 auto 12px}
+.sheet h3{font:700 22px/1.15 var(--font-display);letter-spacing:-.02em;margin:0 0 4px}
+.sheet .sub{color:var(--ink-2);font-size:14px;margin:0 0 16px}
+.field{display:block;margin-bottom:14px}
+.field span{display:block;font-size:13px;color:var(--ink-2);margin:0 2px 6px}
+.field input,.field select{width:100%;height:46px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);padding:0 12px;font-size:16px;outline:none;-webkit-appearance:none;appearance:none}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2397A29C' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+.sheet .list-edit{list-style:none;margin:0 0 14px;padding:0;background:var(--surface-2);border-radius:14px;overflow:hidden}
+.sheet .list-edit li{display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 14px;min-height:48px;border-bottom:1px solid var(--line)}
+.sheet .list-edit li:last-child{border-bottom:0}
+.sheet .list-edit li small{color:var(--ink-3);font-size:12px;margin-left:6px}
+.sheet .list-edit .icon-btn{color:var(--old)}
+.sheet .actions{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+
+/* Sicherung */
+.top .sync{width:36px;height:36px;margin-right:-8px;border-radius:10px;display:grid;place-items:center;color:var(--ink-3);flex:none}
+.top .sync svg{width:22px;height:22px}
+.top .sync[data-s="ok"]{color:var(--accent)}
+.top .sync[data-s="off"]{color:var(--mid)}
+.top .sync[data-s="error"]{color:var(--old)}
+.top .sync[data-s="busy"] svg{animation:pulse .8s ease-in-out infinite alternate}
+@keyframes pulse{to{opacity:.3}}
+.sync-card{padding:14px}
+.sync-card .st{display:flex;align-items:center;gap:8px;font-weight:600;font-size:16px}
+.sync-card .st i{width:9px;height:9px;border-radius:50%;background:var(--ink-3);flex:none}
+.sync-card .st i[data-s="ok"]{background:var(--accent)}
+.sync-card .st i[data-s="off"]{background:var(--mid)}
+.sync-card .st i[data-s="error"]{background:var(--old)}
+.sync-card p{margin:6px 0 12px;font-size:14px;color:var(--ink-2)}
+.sync-card .row-btns{margin:0}
+.steps{margin:0 0 6px;padding:0;list-style:none;counter-reset:s}
+.steps li{position:relative;padding:0 0 16px 38px;font-size:15px;font-weight:600}
+.steps li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:-3px;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-weight:700;font-size:14px;display:grid;place-items:center}
+.steps li small{display:block;color:var(--ink-2);font-size:13px;font-weight:400;margin-top:3px}
+.steps li small b{color:var(--ink);font-weight:600}
+.steps .btn{margin-top:10px;height:40px}
+a.btn{text-decoration:none;color:inherit}
+.msg{font-size:14px;margin:-4px 2px 12px;min-height:20px;color:var(--ink-2)}
+.msg.err{color:var(--old)}
+.msg.ok{color:var(--accent)}
+.btn:disabled{opacity:.5}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="logo" viewBox="0 0 140 140">
+      <rect width="140" height="140" rx="32" fill="#111412"/>
+      <g fill="#C6FF3D" transform="translate(4.5 0)">
+        <rect x="40" y="27" width="10" height="86"/>
+        <rect x="26" y="19" width="38" height="11" rx="3"/>
+        <rect x="31" y="11" width="28" height="8" rx="2"/>
+        <rect x="26" y="110" width="38" height="11" rx="3"/>
+        <rect x="31" y="121" width="28" height="8" rx="2"/>
+        <path d="M45 40 H78 a22 22 0 0 1 0 44 H45" fill="none" stroke="#C6FF3D" stroke-width="10"/>
+      </g>
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.8" fill="currentColor"/><circle cx="12" cy="12" r="1.8" fill="currentColor"/><circle cx="19" cy="12" r="1.8" fill="currentColor"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="4" cy="6" r="1.3" fill="currentColor"/><circle cx="4" cy="12" r="1.3" fill="currentColor"/><circle cx="4" cy="18" r="1.3" fill="currentColor"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="7" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="17" r="2.3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 19h10.5a4.5 4.5 0 0 0 .6-8.96A6.5 6.5 0 0 0 5.6 9.3 4.9 4.9 0 0 0 7 19z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 5h5v5M19 5l-8 8M17 14v4a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 5 18V8.5A1.5 1.5 0 0 1 6.5 7H10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 15.5V4.5M7 9l5-5 5 5M5 20h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs>
+</svg>
+
+<header class="top" id="top">
+  <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
+  <h1><span>P</span>Gym</h1>
+  <div class="today" id="today"></div>
+  <button type="button" class="sync" id="sync-ind" aria-label="Sicherung"><svg aria-hidden="true"><use href="#i-cloud"/></svg></button>
+</header>
+
+<main>
+  <!-- Übersicht -->
+  <section class="view" id="v-home" aria-label="Übersicht">
+    <label class="search">
+      <span class="sr">Übung suchen</span>
+      <svg aria-hidden="true"><use href="#i-search"/></svg>
+      <input id="q" type="search" placeholder="Übung suchen" autocomplete="off" enterkeyhint="search">
+      <button type="button" class="clear" id="q-clear" aria-label="Suche leeren" hidden><svg width="18" height="18"><use href="#i-x"/></svg></button>
+    </label>
+    <div class="seg" id="seg" role="group" aria-label="Sortierung">
+      <span class="knob" aria-hidden="true"></span>
+      <button type="button" data-mode="time">Nach Zeit</button>
+      <button type="button" data-mode="folder">Nach Ordner</button>
+    </div>
+    <div class="chips" id="chips" role="group" aria-label="Ordner filtern"></div>
+    <p class="summary" id="summary"></p>
+    <div id="home-list"></div>
+  </section>
+
+  <!-- Verlauf -->
+  <section class="view" id="v-history" aria-label="Verlauf" hidden>
+    <h2>Verlauf</h2>
+    <div class="row-btns"><button type="button" class="btn" id="add-past"><svg><use href="#i-plus"/></svg>Training nachtragen</button></div>
+    <div id="history-list"></div>
+  </section>
+
+  <!-- Verwalten -->
+  <section class="view" id="v-manage" aria-label="Verwalten" hidden>
+    <h2>Übungen</h2>
+    <div class="row-btns">
+      <button type="button" class="btn primary" id="add-ex"><svg><use href="#i-plus"/></svg>Übung</button>
+      <button type="button" class="btn" id="add-folder"><svg><use href="#i-plus"/></svg>Ordner</button>
+    </div>
+    <div id="manage-list"></div>
+    <div class="section-t" id="sync-section">Sicherung bei GitHub</div>
+    <div class="card sync-card" id="sync-card"></div>
+    <div class="section-t">Backup-Datei</div>
+    <div class="row-btns">
+      <button type="button" class="btn" id="export"><svg><use href="#i-down"/></svg>Sichern</button>
+      <button type="button" class="btn" id="import"><svg><use href="#i-up"/></svg>Laden</button>
+    </div>
+    <p class="note" id="backup-note"></p>
+    <input type="file" id="import-file" accept="application/json,.json" hidden>
+  </section>
+</main>
+
+<nav class="tabbar" aria-label="Bereiche">
+  <div class="inner">
+    <button type="button" class="tab" data-view="home"><svg aria-hidden="true"><use href="#i-list"/></svg>Übersicht</button>
+    <button type="button" class="tab" data-view="history"><svg aria-hidden="true"><use href="#i-cal"/></svg>Verlauf</button>
+    <button type="button" class="tab" data-view="manage"><svg aria-hidden="true"><use href="#i-sliders"/></svg>Verwalten</button>
+  </div>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-text"></span><button type="button" id="toast-undo">Rückgängig</button></div>
+<dialog id="sheet"><div class="sheet" id="sheet-body"></div></dialog>
+
+<script>
+'use strict';
+/* ---------- Daten ---------- */
+const STORE = 'pgym.v1';
+const PREF = 'pgym.prefs';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+const SEED = [
+  ['Brust', ['Butterflys', 'Incline Press', 'Brustpresse']],
+  ['Schulter', ['Schulterdrücken', 'Sitzendes Schulterheben', 'Stehendes Schulterheben', 'Frontales Schulterheben']],
+  ['Rücken', ['Latzug', 'Einarmiger Latzug', 'Rudern', 'Stehendes Rudern', 'Unterer Rücken']],
+  ['Arme', ['Bizeps Curls', 'Trizeps Pushdown', 'Overhead Extensions', 'Trizeps Pushdown mit Stange']],
+  ['Bauch', ['Bauch Crunches', 'Rumpfrotation']],
+  ['Beine', ['Beinpresse', 'Hackenschmidt', 'Leg Extensions', 'Leg Curls']],
+];
+function seed() {
+  const d = { version: 1, folders: [], exercises: [], log: [], savedAt: 0, pristine: true };
+  for (const [fname, list] of SEED) {
+    const f = { id: uid(), name: fname };
+    d.folders.push(f);
+    for (const n of list) d.exercises.push({ id: uid(), name: n, folderId: f.id });
+  }
+  return d;
+}
+function valid(d) {
+  return d && Array.isArray(d.folders) && Array.isArray(d.exercises) && Array.isArray(d.log);
+}
+function load() {
+  try { const d = JSON.parse(localStorage.getItem(STORE)); if (valid(d)) return d; } catch (e) {}
+  return null;
+}
+let db = load() || seed();
+
+/* Zustand der GitHub-Sicherung (Schlüssel, Gist, ob noch etwas hochgeladen werden muss) */
+const SYNC = 'pgym.sync';
+const EMPTY_SYNC = { token: '', gistId: '', login: '', dirty: false, lastSync: 0, error: '' };
+let sync = { ...EMPTY_SYNC };
+try { Object.assign(sync, JSON.parse(localStorage.getItem(SYNC)) || {}); } catch (e) {}
+const saveSync = () => { try { localStorage.setItem(SYNC, JSON.stringify(sync)); } catch (e) {} };
+
+/* touch = echte Änderung durch dich: Zeitstempel setzen und zu GitHub hochladen */
+function save(touch = true) {
+  if (touch) { db.savedAt = Date.now(); db.pristine = false; }
+  try { localStorage.setItem(STORE, JSON.stringify(db)); }
+  catch (e) { alert('Speichern hat nicht geklappt. Bitte ein Backup sichern.'); }
+  if (touch && sync.token) { sync.dirty = true; saveSync(); schedulePush(); }
+}
+save(false);
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+let prefs = { mode: 'time', filter: 'all' };
+try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREF)) || {}); } catch (e) {}
+const savePrefs = () => { try { localStorage.setItem(PREF, JSON.stringify(prefs)); } catch (e) {} };
+
+/* ---------- Datum ---------- */
+const pad = n => String(n).padStart(2, '0');
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const keyUTC = k => { const [y, m, d] = k.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+const daysSince = k => Math.round((keyUTC(dayKey()) - keyUTC(k)) / 864e5);
+const keyDate = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+const fmtLong = k => keyDate(k).toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+const fmtWeekday = k => keyDate(k).toLocaleDateString('de-DE', { weekday: 'long' });
+const fmtMonth = k => keyDate(k).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' });
+function rel(days) {
+  if (days === 0) return 'Heute';
+  if (days === 1) return 'Gestern';
+  if (days < 0) return 'Geplant';
+  if (days <= 30) return `vor ${days} Tagen`;
+  if (days < 120) return `vor ${Math.round(days / 7)} Wochen`;
+  return `vor ${Math.round(days / 30.4)} Monaten`;
+}
+function age(days) {
+  if (days == null) return 'never';
+  if (days <= 0) return 'done';
+  if (days < 7) return 'fresh';
+  if (days < 14) return 'mid';
+  return 'old';
+}
+
+/* ---------- Hilfen ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = s => s.toLocaleLowerCase('de').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss');
+const icon = (id, size) => `<svg${size ? ` width="${size}" height="${size}"` : ''} aria-hidden="true"><use href="#${id}"/></svg>`;
+const folderById = id => db.folders.find(f => f.id === id);
+const exById = id => db.exercises.find(e => e.id === id);
+const active = () => db.exercises.filter(e => !e.archived);
+const byName = (a, b) => a.name.localeCompare(b.name, 'de');
+
+function lastMap() {
+  const m = {};
+  for (const e of db.log) if (!m[e.exId] || e.date > m[e.exId]) m[e.exId] = e.date;
+  return m;
+}
+/* Nie gemacht zuerst, dann am längsten her, heute Erledigtes unten */
+function sortByAge(list, last) {
+  return list.slice().sort((a, b) => {
+    const la = last[a.id] || '', lb = last[b.id] || '';
+    if (la !== lb) return la < lb ? -1 : 1;
+    const fa = db.folders.findIndex(f => f.id === a.folderId), fb = db.folders.findIndex(f => f.id === b.folderId);
+    if (fa !== fb) return fa - fb;
+    return db.exercises.indexOf(a) - db.exercises.indexOf(b);
+  });
+}
+
+/* ---------- Übersicht ---------- */
+let query = '';
+function renderHome() {
+  const last = lastMap();
+  const today = dayKey();
+  const q = norm(query.trim());
+  const doneToday = db.log.filter(e => e.date === today && exById(e.exId) && !exById(e.exId).archived).length;
+
+  // Ordnerfilter
+  if (prefs.filter !== 'all' && !folderById(prefs.filter)) prefs.filter = 'all';
+  const chips = $('#chips');
+  chips.hidden = prefs.mode !== 'time';
+  chips.innerHTML = [{ id: 'all', name: 'Alle' }, ...db.folders].map(f =>
+    `<button type="button" class="chip" data-f="${f.id}" aria-pressed="${prefs.filter === f.id}">${esc(f.name)}</button>`).join('');
+
+  $('#seg').dataset.mode = prefs.mode;
+  for (const b of $('#seg').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.mode === prefs.mode);
+
+  let list = active();
+  if (q) list = list.filter(e => norm(e.name).includes(q) || norm(folderById(e.folderId)?.name || '').includes(q));
+  else if (prefs.mode === 'time' && prefs.filter !== 'all') list = list.filter(e => e.folderId === prefs.filter);
+
+  $('#summary').innerHTML = doneToday
+    ? `Heute erledigt: <b>${doneToday} ${doneToday === 1 ? 'Übung' : 'Übungen'}</b>`
+    : (q ? `${list.length} Treffer` : 'Tippe eine Übung an, wenn du sie gemacht hast.');
+
+  const row = e => {
+    const l = last[e.id];
+    const d = l ? daysSince(l) : null;
+    const f = folderById(e.folderId);
+    const when = l ? (d <= 1 ? rel(d) : `${rel(d)} · ${keyDate(l).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })}`) : 'Noch nie gemacht';
+    const tag = (prefs.mode === 'time' || q) && f ? `<span class="tag">${esc(f.name)} · </span>` : '';
+    return `<li><button type="button" class="ex" data-id="${e.id}" data-age="${age(d)}" aria-pressed="${d === 0}">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="txt"><span class="name">${esc(e.name)}</span><span class="meta">${tag}${when}</span></span>
+      <span class="box" aria-hidden="true">${icon('i-check')}</span></button></li>`;
+  };
+
+  let html = '';
+  if (!list.length) {
+    html = q
+      ? `<div class="empty"><p>Keine Übung „${esc(query.trim())}“ gefunden.</p><button type="button" class="btn primary" id="create-from-q">${icon('i-plus')}„${esc(query.trim())}“ anlegen</button></div>`
+      : `<div class="empty"><p>Hier sind noch keine Übungen.</p><button type="button" class="btn primary" data-go="manage">Übungen verwalten</button></div>`;
+  } else if (prefs.mode === 'folder' && !q) {
+    for (const f of db.folders) {
+      const items = sortByAge(list.filter(e => e.folderId === f.id), last);
+      if (!items.length) continue;
+      const done = items.filter(e => last[e.id] === today).length;
+      html += `<div class="group-h">${esc(f.name)}<small>${done ? `${done} von ${items.length} heute` : `${items.length} ${items.length === 1 ? 'Übung' : 'Übungen'}`}</small></div><ul class="list">${items.map(row).join('')}</ul>`;
+    }
+  } else {
+    html = `<ul class="list">${sortByAge(list, last).map(row).join('')}</ul>`;
+  }
+  $('#home-list').innerHTML = html;
+}
+
+/* Sanftes Umsortieren (FLIP) */
+function withFlip(fn) {
+  const before = new Map();
+  document.querySelectorAll('.ex[data-id]').forEach(el => before.set(el.dataset.id, el.getBoundingClientRect().top));
+  fn();
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  document.querySelectorAll('.ex[data-id]').forEach(el => {
+    const t = before.get(el.dataset.id);
+    if (t == null) return;
+    const dy = t - el.getBoundingClientRect().top;
+    if (Math.abs(dy) < 1) return;
+    el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.3,.7,.2,1)' });
+  });
+}
+
+function toggle(exId) {
+  const today = dayKey();
+  const i = db.log.findIndex(e => e.exId === exId && e.date === today);
+  const ex = exById(exId);
+  let undo;
+  if (i >= 0) {
+    const [removed] = db.log.splice(i, 1);
+    undo = () => db.log.push(removed);
+    toast(`${ex.name} wieder offen`, undo);
+  } else {
+    const entry = { id: uid(), exId, date: today };
+    db.log.push(entry);
+    undo = () => { db.log = db.log.filter(e => e.id !== entry.id); };
+    toast(`${ex.name} erledigt`, undo);
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+  save();
+  withFlip(renderHome);
+}
+
+/* ---------- Toast ---------- */
+let toastTimer, toastUndo;
+function toast(text, undo) {
+  $('#toast-text').textContent = text;
+  toastUndo = undo;
+  $('#toast-undo').hidden = !undo;
+  $('#toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('#toast').classList.remove('show'), 3500);
+}
+$('#toast-undo').addEventListener('click', () => {
+  if (toastUndo) { toastUndo(); toastUndo = null; save(); withFlip(renderAll); }
+  $('#toast').classList.remove('show');
+});
+
+/* ---------- Verlauf ---------- */
+function trainings() {
+  const m = new Map();
+  for (const e of db.log) { if (!m.has(e.date)) m.set(e.date, []); m.get(e.date).push(e); }
+  return [...m.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1));
+}
+const exName = id => exById(id)?.name || 'Gelöschte Übung';
+function renderHistory() {
+  const list = trainings();
+  if (!list.length) {
+    $('#history-list').innerHTML = `<div class="empty"><p>Noch keine Trainings. Sobald du in der Übersicht Übungen abhakst, erscheinen sie hier.</p></div>`;
+    return;
+  }
+  let html = '', month = '';
+  for (const [date, entries] of list) {
+    const mo = fmtMonth(date);
+    if (mo !== month) { html += `<div class="month">${mo}</div>`; month = mo; }
+    const names = entries.map(e => exName(e.exId)).sort((a, b) => a.localeCompare(b, 'de'));
+    const d = daysSince(date);
+    html += `<button type="button" class="day" data-date="${date}">
+      <div class="d">${fmtLong(date)}</div>
+      <div class="n">${fmtWeekday(date)}${d <= 1 && d >= 0 ? ` · ${rel(d)}` : ''} · ${entries.length} ${entries.length === 1 ? 'Übung' : 'Übungen'}</div>
+      <div class="names">${names.map(n => `<span>${esc(n)}</span>`).join('')}</div></button>`;
+  }
+  $('#history-list').innerHTML = html;
+}
+
+/* ---------- Blatt ---------- */
+const sheet = $('#sheet');
+function openSheet(html, bind) {
+  $('#sheet-body').innerHTML = `<div class="grab" aria-hidden="true"></div>${html}`;
+  if (!sheet.open) sheet.showModal();
+  bind && bind($('#sheet-body'));
+}
+const closeSheet = () => sheet.open && sheet.close();
+sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+sheet.addEventListener('close', () => { if (!sheet.open) $('#sheet-body').innerHTML = ''; });
+
+function exOptions(exclude = new Set(), selected = '') {
+  return db.folders.map(f => {
+    const items = active().filter(e => e.folderId === f.id && !exclude.has(e.id)).sort(byName);
+    if (!items.length) return '';
+    return `<optgroup label="${esc(f.name)}">${items.map(e => `<option value="${e.id}"${e.id === selected ? ' selected' : ''}>${esc(e.name)}</option>`).join('')}</optgroup>`;
+  }).join('');
+}
+
+function openTraining(date) {
+  const entries = db.log.filter(e => e.date === date).sort((a, b) => exName(a.exId).localeCompare(exName(b.exId), 'de'));
+  const have = new Set(entries.map(e => e.exId));
+  const opts = exOptions(have);
+  openSheet(`
+    <h3>${fmtLong(date)}</h3>
+    <p class="sub">${fmtWeekday(date)} · ${entries.length} ${entries.length === 1 ? 'Übung' : 'Übungen'}</p>
+    <label class="field"><span>Datum ändern</span><input type="date" id="t-date" value="${date}" max="${dayKey()}"></label>
+    ${entries.length ? `<ul class="list-edit">${entries.map(e => {
+      const ex = exById(e.exId); const f = ex && folderById(ex.folderId);
+      return `<li><span>${esc(exName(e.exId))}${f ? `<small>${esc(f.name)}</small>` : ''}</span><button type="button" class="icon-btn" data-del="${e.id}" aria-label="${esc(exName(e.exId))} entfernen">${icon('i-x')}</button></li>`;
+    }).join('')}</ul>` : `<p class="sub">Noch keine Übungen an diesem Tag.</p>`}
+    ${opts ? `<label class="field"><span>Übung hinzufügen</span><select id="t-add"><option value="">Übung wählen …</option>${opts}</select></label>` : ''}
+    <div class="actions">
+      <button type="button" class="btn primary wide" data-close>Fertig</button>
+      ${entries.length ? `<button type="button" class="btn danger wide" id="t-delete">Training löschen</button>` : ''}
+    </div>`, root => {
+    root.querySelector('[data-close]').onclick = closeSheet;
+    root.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+      db.log = db.log.filter(e => e.id !== b.dataset.del); save(); renderAll(); openTraining(date);
+    });
+    const add = root.querySelector('#t-add');
+    if (add) add.onchange = () => {
+      if (!add.value) return;
+      db.log.push({ id: uid(), exId: add.value, date }); save(); renderAll(); openTraining(date);
+    };
+    root.querySelector('#t-date').onchange = ev => {
+      const nd = ev.target.value;
+      if (!nd || nd === date) return;
+      if (nd > dayKey()) { ev.target.value = date; return; }
+      const there = new Set(db.log.filter(e => e.date === nd).map(e => e.exId));
+      db.log = db.log.filter(e => !(e.date === date && there.has(e.exId)));
+      db.log.forEach(e => { if (e.date === date) e.date = nd; });
+      save(); renderAll(); openTraining(nd);
+    };
+    const del = root.querySelector('#t-delete');
+    if (del) del.onclick = () => {
+      if (!confirm(`Training vom ${fmtLong(date)} wirklich löschen?`)) return;
+      const removed = db.log.filter(e => e.date === date);
+      db.log = db.log.filter(e => e.date !== date); save(); closeSheet(); renderAll();
+      toast('Training gelöscht', () => { db.log.push(...removed); });
+    };
+  });
+}
+
+function openAddPast() {
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  openSheet(`
+    <h3>Training nachtragen</h3>
+    <p class="sub">Wähle den Tag, an dem du trainiert hast.</p>
+    <label class="field"><span>Datum</span><input type="date" id="p-date" value="${dayKey(y)}" max="${dayKey()}"></label>
+    <div class="actions"><button type="button" class="btn primary wide" id="p-go">Weiter</button><button type="button" class="btn wide" data-close>Abbrechen</button></div>`, root => {
+    root.querySelector('[data-close]').onclick = closeSheet;
+    root.querySelector('#p-go').onclick = () => {
+      const d = root.querySelector('#p-date').value;
+      if (d && d <= dayKey()) openTraining(d);
+    };
+  });
+}
+
+/* ---------- Verwalten ---------- */
+function renderManage() {
+  let html = '';
+  for (const f of db.folders) {
+    const items = active().filter(e => e.folderId === f.id).sort(byName);
+    html += `<div class="card"><div class="card-h"><b>${esc(f.name)}<small>${items.length}</small></b>
+      <button type="button" class="icon-btn" data-folder="${f.id}" aria-label="Ordner ${esc(f.name)} bearbeiten">${icon('i-dots')}</button></div>
+      ${items.map(e => `<button type="button" class="item" data-ex="${e.id}"><span>${esc(e.name)}</span>${icon('i-chev')}</button>`).join('') || '<div class="item muted">Keine Übungen</div>'}</div>`;
+  }
+  $('#manage-list').innerHTML = html || `<div class="empty"><p>Lege zuerst einen Ordner an.</p></div>`;
+}
+
+const folderOptions = sel => db.folders.map(f => `<option value="${f.id}"${f.id === sel ? ' selected' : ''}>${esc(f.name)}</option>`).join('');
+
+function openExercise(id, presetName = '') {
+  const ex = id ? exById(id) : null;
+  if (!db.folders.length) { openFolder(null, () => openExercise(id, presetName)); return; }
+  const defFolder = ex ? ex.folderId : (prefs.mode === 'time' && prefs.filter !== 'all' ? prefs.filter : db.folders[0].id);
+  openSheet(`
+    <h3>${ex ? 'Übung bearbeiten' : 'Neue Übung'}</h3>
+    <p class="sub">${ex ? 'Name oder Ordner ändern, oder die Übung entfernen.' : 'Sie erscheint in der Übersicht ganz oben, bis du sie zum ersten Mal machst.'}</p>
+    <label class="field"><span>Name</span><input id="e-name" value="${esc(ex ? ex.name : presetName)}" placeholder="z. B. Kabelzug" autocomplete="off" enterkeyhint="done"></label>
+    <label class="field"><span>Ordner</span><select id="e-folder">${folderOptions(defFolder)}</select></label>
+    <div class="actions">
+      <button type="button" class="btn primary wide" id="e-save">${ex ? 'Speichern' : 'Hinzufügen'}</button>
+      ${ex ? `<button type="button" class="btn danger wide" id="e-del">Übung entfernen</button>` : `<button type="button" class="btn wide" data-close>Abbrechen</button>`}
+    </div>`, root => {
+    const name = root.querySelector('#e-name');
+    if (!ex) setTimeout(() => name.focus(), 50);
+    root.querySelector('[data-close]')?.addEventListener('click', closeSheet);
+    const submit = () => {
+      const n = name.value.trim().replace(/\s+/g, ' ');
+      if (!n) { name.focus(); return; }
+      const dupe = active().find(e => e.id !== id && norm(e.name) === norm(n));
+      if (dupe) { alert(`„${dupe.name}“ gibt es schon.`); return; }
+      const folderId = root.querySelector('#e-folder').value;
+      if (ex) { ex.name = n; ex.folderId = folderId; }
+      else {
+        const old = db.exercises.find(e => e.archived && norm(e.name) === norm(n));
+        if (old) { old.archived = false; old.folderId = folderId; old.name = n; }
+        else db.exercises.push({ id: uid(), name: n, folderId });
+      }
+      save(); closeSheet(); renderAll();
+      if (!ex) toast(`${n} hinzugefügt`);
+    };
+    root.querySelector('#e-save').onclick = submit;
+    name.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    const del = root.querySelector('#e-del');
+    if (del) del.onclick = () => {
+      if (!confirm(`„${ex.name}“ aus der Übersicht entfernen? Dein Verlauf bleibt erhalten.`)) return;
+      ex.archived = true; save(); closeSheet(); renderAll();
+      toast(`${ex.name} entfernt`, () => { ex.archived = false; });
+    };
+  });
+}
+
+function openFolder(id, after) {
+  const f = id ? folderById(id) : null;
+  const count = f ? active().filter(e => e.folderId === f.id).length : 0;
+  const idx = f ? db.folders.indexOf(f) : -1;
+  openSheet(`
+    <h3>${f ? 'Ordner bearbeiten' : 'Neuer Ordner'}</h3>
+    <p class="sub">${f ? (count ? `${count} ${count === 1 ? 'Übung' : 'Übungen'} in diesem Ordner.` : 'Dieser Ordner ist leer.') : 'z. B. Cardio oder Dehnen.'}</p>
+    <label class="field"><span>Name</span><input id="f-name" value="${esc(f ? f.name : '')}" placeholder="Ordnername" autocomplete="off" enterkeyhint="done"></label>
+    <div class="actions">
+      <button type="button" class="btn primary wide" id="f-save">${f ? 'Speichern' : 'Anlegen'}</button>
+      ${f ? `<div class="row-btns" style="margin:0"><button type="button" class="btn" id="f-up"${idx === 0 ? ' disabled style="opacity:.4"' : ''}>Nach oben</button><button type="button" class="btn" id="f-down"${idx === db.folders.length - 1 ? ' disabled style="opacity:.4"' : ''}>Nach unten</button></div>
+      <button type="button" class="btn danger wide" id="f-del">Ordner löschen</button>` : `<button type="button" class="btn wide" data-close>Abbrechen</button>`}
+    </div>`, root => {
+    const name = root.querySelector('#f-name');
+    if (!f) setTimeout(() => name.focus(), 50);
+    root.querySelector('[data-close]')?.addEventListener('click', closeSheet);
+    const submit = () => {
+      const n = name.value.trim().replace(/\s+/g, ' ');
+      if (!n) { name.focus(); return; }
+      if (db.folders.some(x => x !== f && norm(x.name) === norm(n))) { alert(`Den Ordner „${n}“ gibt es schon.`); return; }
+      if (f) f.name = n; else db.folders.push({ id: uid(), name: n });
+      save(); closeSheet(); renderAll();
+      if (after) after();
+    };
+    root.querySelector('#f-save').onclick = submit;
+    name.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    const move = dir => {
+      const i = db.folders.indexOf(f), j = i + dir;
+      if (j < 0 || j >= db.folders.length) return;
+      [db.folders[i], db.folders[j]] = [db.folders[j], db.folders[i]];
+      save(); renderAll(); openFolder(id);
+    };
+    root.querySelector('#f-up')?.addEventListener('click', () => move(-1));
+    root.querySelector('#f-down')?.addEventListener('click', () => move(1));
+    const del = root.querySelector('#f-del');
+    if (del) del.onclick = () => {
+      if (count) { alert(`Der Ordner enthält noch ${count} ${count === 1 ? 'Übung' : 'Übungen'}. Verschiebe oder entferne sie zuerst.`); return; }
+      if (!confirm(`Ordner „${f.name}“ löschen?`)) return;
+      db.folders = db.folders.filter(x => x !== f);
+      // Archivierte Übungen behalten ihren Verlauf, verweisen aber auf keinen Ordner mehr
+      save(); closeSheet(); renderAll();
+    };
+  });
+}
+
+/* ---------- Backup ---------- */
+async function exportBackup() {
+  const name = `PGym-Backup-${dayKey()}.json`;
+  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  const file = new File([blob], name, { type: 'application/json' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'PGym Backup' }); markBackup(); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  markBackup();
+}
+function markBackup() { prefs.lastBackup = dayKey(); savePrefs(); renderBackupNote(); }
+function renderBackupNote() {
+  const base = 'Nur als Reserve. Mit der GitHub-Sicherung brauchst du keine Backup-Datei.';
+  $('#backup-note').textContent = prefs.lastBackup ? `${base} Letztes Backup: ${fmtLong(prefs.lastBackup)}.` : base;
+}
+$('#export').onclick = exportBackup;
+$('#import').onclick = () => $('#import-file').click();
+$('#import-file').onchange = async ev => {
+  const f = ev.target.files[0]; ev.target.value = '';
+  if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!valid(d)) throw new Error('format');
+    if (!confirm(`Backup laden? ${d.exercises.filter(e => !e.archived).length} Übungen und ${new Set(d.log.map(e => e.date)).size} Trainings ersetzen deine aktuellen Daten.`)) return;
+    db = d; save(); renderAll(); toast('Backup geladen');
+  } catch (e) { alert('Diese Datei ist kein PGym-Backup.'); }
+};
+
+/* ---------- GitHub-Sicherung ---------- */
+const GIST_FILE = 'pgym-daten.json';
+const GIST_DESC = 'PGym Sicherung – bitte nicht löschen';
+const TOKEN_URL = 'https://github.com/settings/tokens/new?scopes=gist&description=PGym';
+let syncBusy = false, syncOffline = false, pushTimer = null, lastPull = 0;
+
+class GhError extends Error { constructor(code, status) { super(code); this.code = code; this.status = status; } }
+async function gh(path, { method = 'GET', body, keepalive = false, token = sync.token } = {}) {
+  let res;
+  try {
+    res = await fetch('https://api.github.com' + path, {
+      method, keepalive, cache: 'no-store',
+      headers: { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + token, 'X-GitHub-Api-Version': '2022-11-28', ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch (e) { throw new GhError('offline'); }
+  if (res.status === 401) throw new GhError('auth', 401);
+  if (res.status === 404) throw new GhError('notfound', 404);
+  if (!res.ok) throw new GhError('http', res.status);
+  return res.status === 204 ? null : res.json();
+}
+const gistBody = () => ({ files: { [GIST_FILE]: { content: JSON.stringify(db) } } });
+async function readGist(id, token = sync.token) {
+  const g = await gh('/gists/' + id, { token });
+  const f = g.files && g.files[GIST_FILE];
+  if (!f) throw new GhError('notfound', 404);
+  let text = f.content;
+  if (f.truncated) {
+    try { text = await (await fetch(f.raw_url, { cache: 'no-store' })).text(); } catch (e) { throw new GhError('offline'); }
+  }
+  let d;
+  try { d = JSON.parse(text); } catch (e) { throw new GhError('format'); }
+  if (!valid(d)) throw new GhError('format');
+  return d;
+}
+async function findGist(token) {
+  for (let p = 1; p <= 10; p++) {
+    const list = await gh(`/gists?per_page=100&page=${p}`, { token });
+    const hit = list.find(g => g.files && g.files[GIST_FILE]);
+    if (hit) return hit.id;
+    if (list.length < 100) break;
+  }
+  return null;
+}
+async function createGist(token = sync.token) {
+  const g = await gh('/gists', { method: 'POST', token, body: { description: GIST_DESC, public: false, ...gistBody() } });
+  return g.id;
+}
+
+function schedulePush(delay = 2500) {
+  if (!sync.token || !sync.gistId) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => push(), delay);
+  renderSync();
+}
+async function push(keepalive = false) {
+  if (!sync.token || syncBusy) return;
+  clearTimeout(pushTimer);
+  if (!navigator.onLine) { syncOffline = true; renderSync(); return; }
+  syncBusy = true; renderSync();
+  const ver = db.savedAt;
+  try {
+    if (sync.gistId) {
+      try { await gh('/gists/' + sync.gistId, { method: 'PATCH', body: gistBody(), keepalive }); }
+      catch (e) { if (e.code !== 'notfound') throw e; sync.gistId = await createGist(); } // Gist wurde gelöscht: neu anlegen
+    } else sync.gistId = await createGist();
+    if (db.savedAt === ver) sync.dirty = false;
+    sync.lastSync = Date.now(); sync.error = ''; syncOffline = false;
+  } catch (e) {
+    if (e.code === 'offline') syncOffline = true;
+    else sync.error = e.code === 'auth' ? 'auth' : 'http';
+  } finally {
+    syncBusy = false; saveSync(); renderSync();
+  }
+  if (sync.dirty && !sync.error && !syncOffline) schedulePush(1000);
+}
+/* Beim Öffnen: neuere Daten von GitHub holen oder eigene hochladen (die jüngere Version gewinnt) */
+async function pull(force = false) {
+  if (!sync.token || syncBusy) return;
+  if (!sync.gistId) { sync.dirty = true; return push(); }
+  if (!navigator.onLine) { syncOffline = true; renderSync(); return; }
+  if (!force && Date.now() - lastPull < 30000) { if (sync.dirty) push(); return; }
+  lastPull = Date.now();
+  syncBusy = true; renderSync();
+  let remote = null, missing = false;
+  try { remote = await readGist(sync.gistId); sync.error = ''; syncOffline = false; }
+  catch (e) {
+    if (e.code === 'offline') syncOffline = true;
+    else if (e.code === 'notfound') missing = true;
+    else sync.error = e.code === 'auth' ? 'auth' : 'http';
+  }
+  syncBusy = false;
+  if (remote && (remote.savedAt || 0) > (db.savedAt || 0)) {
+    db = remote; sync.dirty = false; sync.lastSync = Date.now(); save(false); saveSync(); renderAll();
+    return;
+  }
+  if (missing || (remote && ((db.savedAt || 0) > (remote.savedAt || 0) || sync.dirty))) {
+    sync.dirty = true; saveSync(); return push();
+  }
+  if (remote) sync.lastSync = Date.now();
+  saveSync(); renderSync();
+}
+
+const hasData = d => d.log.length > 0 && !d.pristine;
+const trainingCount = d => { const n = new Set(d.log.map(e => e.date)).size; return `${n} ${n === 1 ? 'Training' : 'Trainings'}`; };
+async function connect(token, say) {
+  say('Verbinde mit GitHub …');
+  const user = await gh('/user', { token });
+  say('Suche nach einer vorhandenen Sicherung …');
+  const id = await findGist(token);
+  let result = 'created', remote = null;
+  if (id && id === sync.gistId) result = 'same'; // nur neuer Schlüssel, gleiche Sicherung
+  else if (id) {
+    remote = await readGist(id, token);
+    if (!hasData(db) || !remote.log.length) result = hasData(db) ? 'keep' : 'restore';
+    else result = 'choose';
+  }
+  if (result === 'created') say('Lege eine neue Sicherung an …');
+  const gistId = id || await createGist(token);
+  Object.assign(sync, { token, gistId, login: user.login, error: '', lastSync: Date.now() });
+  syncOffline = false; lastPull = Date.now();
+  if (result === 'restore') { db = remote; sync.dirty = false; save(false); }
+  else if (result === 'keep') { sync.dirty = true; }
+  else if (result === 'created') { sync.dirty = false; }
+  saveSync();
+  return { result, remote };
+}
+
+function agoText(ts) {
+  const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (s < 60) return 'gerade eben';
+  if (s < 3600) return `vor ${Math.round(s / 60)} Min.`;
+  if (s < 86400) return `vor ${Math.round(s / 3600)} Std.`;
+  return 'am ' + fmtLong(dayKey(new Date(ts)));
+}
+function syncStatus() {
+  if (!sync.token) return { s: 'off', t: 'Nicht eingerichtet', p: 'Deine Daten liegen nur auf diesem iPhone. Richte die Sicherung ein, damit nichts verloren gehen kann.' };
+  if (sync.error === 'auth') return { s: 'error', t: 'Schlüssel funktioniert nicht mehr', p: 'Der Zugangsschlüssel ist abgelaufen oder wurde gelöscht. Erstelle einen neuen und verbinde PGym erneut. Deine Daten sind weiterhin auf dem iPhone.' };
+  if (sync.error) return { s: 'error', t: 'Sicherung hat nicht geklappt', p: 'GitHub hat gerade nicht geantwortet. PGym versucht es beim nächsten Öffnen erneut, deine Daten sind auf dem iPhone gespeichert.' };
+  if (syncBusy) return { s: 'busy', t: 'Wird gesichert …', p: `GitHub-Konto ${sync.login}` };
+  if (sync.dirty && syncOffline) return { s: 'offline', t: 'Wartet auf Internet', p: 'Deine letzten Änderungen sind auf dem iPhone gespeichert und werden gesichert, sobald du wieder Internet hast.' };
+  if (sync.dirty) return { s: 'busy', t: 'Wird gleich gesichert', p: `GitHub-Konto ${sync.login}` };
+  return { s: 'ok', t: 'Alles gesichert', p: `${sync.lastSync ? `Zuletzt ${agoText(sync.lastSync)} · ` : ''}GitHub-Konto ${sync.login}` };
+}
+function renderSync() {
+  const st = syncStatus();
+  const ind = $('#sync-ind');
+  ind.dataset.s = st.s;
+  ind.setAttribute('aria-label', `Sicherung: ${st.t}`);
+  let btns;
+  if (!sync.token) btns = `<button type="button" class="btn primary wide" data-sync="setup">Sicherung einrichten</button>`;
+  else if (sync.error === 'auth') btns = `<div class="row-btns"><button type="button" class="btn primary" data-sync="setup">Neu verbinden</button><button type="button" class="btn" data-sync="off">Trennen</button></div>`;
+  else btns = `<div class="row-btns"><button type="button" class="btn" data-sync="now"${syncBusy ? ' disabled' : ''}>Jetzt sichern</button><button type="button" class="btn" data-sync="off">Trennen</button></div>`;
+  $('#sync-card').innerHTML = `<div class="st"><i data-s="${st.s}"></i>${esc(st.t)}</div><p>${esc(st.p)}</p>${btns}`;
+}
+
+function openSyncSetup() {
+  openSheet(`
+    <h3>Sicherung einrichten</h3>
+    <p class="sub">PGym speichert deine Daten danach bei jeder Änderung automatisch in einem geheimen Gist in deinem GitHub-Konto.</p>
+    <ol class="steps">
+      <li>Schlüssel bei GitHub erstellen
+        <small>Bei <b>Expiration</b> „No expiration“ wählen. Der Haken bei <b>gist</b> ist schon gesetzt, sonst nichts anhaken. Ganz unten auf <b>Generate token</b> tippen und den Schlüssel kopieren.</small>
+        <a class="btn" href="${TOKEN_URL}" target="_blank" rel="noopener">GitHub öffnen ${icon('i-ext')}</a></li>
+      <li>Schlüssel unten einfügen<small>Er beginnt mit „ghp_“.</small></li>
+      <li>Schlüssel auch in Notizen oder im Passwort-Manager speichern<small>Damit holst du deine Daten auf ein neues iPhone zurück.</small></li>
+    </ol>
+    <label class="field"><span>Zugangsschlüssel</span><input id="s-token" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="ghp_…" enterkeyhint="go"></label>
+    <p class="msg" id="s-msg"></p>
+    <div class="actions"><button type="button" class="btn primary wide" id="s-go">Verbinden</button><button type="button" class="btn wide" data-close>Abbrechen</button></div>`, root => {
+    const input = root.querySelector('#s-token'), msg = root.querySelector('#s-msg'), goBtn = root.querySelector('#s-go');
+    const say = (t, cls = '') => { msg.textContent = t; msg.className = 'msg ' + cls; };
+    root.querySelector('[data-close]').onclick = closeSheet;
+    input.addEventListener('input', () => say(''));
+    const submit = async () => {
+      const token = input.value.trim().replace(/\s+/g, '');
+      if (!token) { say('Bitte zuerst den Schlüssel einfügen.', 'err'); input.focus(); return; }
+      goBtn.disabled = true; input.disabled = true;
+      try {
+        const { result, remote } = await connect(token, say);
+        closeSheet(); renderAll();
+        if (result === 'choose') openSyncChoice(remote);
+        else if (result === 'restore') toast(`Daten von GitHub geladen (${trainingCount(db)})`);
+        else if (result === 'same') { toast('Wieder verbunden'); pull(true); }
+        else { toast('Sicherung eingerichtet'); if (result === 'keep') push(); }
+      } catch (e) {
+        const text = {
+          auth: 'GitHub akzeptiert diesen Schlüssel nicht. Prüfe, ob du ihn vollständig kopiert hast.',
+          offline: 'Keine Internetverbindung. Versuche es gleich noch einmal.',
+          format: 'In deinem GitHub-Konto liegt eine beschädigte PGym-Sicherung. Lösche das Gist „pgym-daten.json“ und versuche es erneut.',
+        }[e.code] || (e.status === 403 || e.status === 404 || e.code === 'notfound'
+          ? 'Dieser Schlüssel darf keine Gists bearbeiten. Erstelle ihn neu und setze den Haken bei „gist“.'
+          : 'Das hat nicht geklappt. Versuche es später noch einmal.');
+        say(text, 'err');
+        goBtn.disabled = false; input.disabled = false;
+      }
+    };
+    goBtn.onclick = submit;
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  });
+}
+function openSyncChoice(remote) {
+  const when = remote.savedAt ? ` (zuletzt geändert ${agoText(remote.savedAt)})` : '';
+  openSheet(`
+    <h3>Welche Daten behalten?</h3>
+    <p class="sub">Auf GitHub liegt schon eine Sicherung mit <b>${trainingCount(remote)}</b>${esc(when)}. Auf diesem iPhone: <b>${trainingCount(db)}</b>. Die andere Version wird überschrieben, bleibt aber im Verlauf des Gists auf GitHub erhalten.</p>
+    <div class="actions">
+      <button type="button" class="btn primary wide" id="c-remote">Daten von GitHub laden</button>
+      <button type="button" class="btn wide" id="c-local">Daten von diesem iPhone behalten</button>
+    </div>`, root => {
+    root.querySelector('#c-remote').onclick = () => { db = remote; sync.dirty = false; save(false); saveSync(); closeSheet(); renderAll(); toast('Daten von GitHub geladen'); };
+    root.querySelector('#c-local').onclick = () => { sync.dirty = true; saveSync(); closeSheet(); push(); toast('Daten dieses iPhones werden gesichert'); };
+  });
+}
+
+$('#sync-card').addEventListener('click', e => {
+  const b = e.target.closest('[data-sync]'); if (!b) return;
+  const a = b.dataset.sync;
+  if (a === 'setup') openSyncSetup();
+  else if (a === 'now') pull(true);
+  else if (a === 'off') {
+    if (!confirm('Sicherung trennen? Deine Daten bleiben auf dem iPhone und bei GitHub, es wird nur nicht mehr automatisch gesichert.')) return;
+    clearTimeout(pushTimer); sync = { ...EMPTY_SYNC }; saveSync(); renderSync();
+  }
+});
+$('#sync-ind').addEventListener('click', () => { go('manage'); $('#sync-section').scrollIntoView({ block: 'start' }); scrollBy(0, -70); });
+addEventListener('online', () => { syncOffline = false; if (sync.dirty) push(); else pull(); });
+addEventListener('offline', () => { syncOffline = true; renderSync(); });
+setInterval(renderSync, 60000);
+
+/* ---------- Navigation ---------- */
+let view = 'home';
+function go(v) {
+  view = v;
+  for (const s of document.querySelectorAll('.view')) s.hidden = s.id !== `v-${v}`;
+  for (const t of document.querySelectorAll('.tab')) {
+    if (t.dataset.view === v) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
+  }
+  window.scrollTo(0, 0);
+}
+function renderAll() {
+  $('#today').textContent = new Date().toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long' });
+  renderHome(); renderHistory(); renderManage(); renderBackupNote(); renderSync();
+}
+
+document.querySelector('.tabbar').addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) go(t.dataset.view); });
+$('#home-list').addEventListener('click', e => {
+  const ex = e.target.closest('.ex'); if (ex) return toggle(ex.dataset.id);
+  if (e.target.closest('#create-from-q')) return openExercise(null, query.trim());
+  const g = e.target.closest('[data-go]'); if (g) go(g.dataset.go);
+});
+$('#chips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  prefs.filter = c.dataset.f; savePrefs(); renderHome();
+});
+$('#seg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b || b.dataset.mode === prefs.mode) return;
+  prefs.mode = b.dataset.mode; savePrefs(); renderHome();
+});
+const qInput = $('#q');
+qInput.addEventListener('input', () => { query = qInput.value; $('#q-clear').hidden = !query; renderHome(); });
+qInput.addEventListener('keydown', e => { if (e.key === 'Enter') qInput.blur(); });
+$('#q-clear').addEventListener('click', e => { e.preventDefault(); qInput.value = ''; query = ''; $('#q-clear').hidden = true; renderHome(); });
+$('#history-list').addEventListener('click', e => { const d = e.target.closest('.day'); if (d) openTraining(d.dataset.date); });
+$('#add-past').onclick = openAddPast;
+$('#manage-list').addEventListener('click', e => {
+  const f = e.target.closest('[data-folder]'); if (f) return openFolder(f.dataset.folder);
+  const x = e.target.closest('[data-ex]'); if (x) openExercise(x.dataset.ex);
+});
+$('#add-ex').onclick = () => openExercise(null);
+$('#add-folder').onclick = () => openFolder(null);
+addEventListener('scroll', () => $('#top').classList.toggle('scrolled', scrollY > 4), { passive: true });
+
+// Neuer Tag während die App offen ist (z. B. über Mitternacht)
+let lastDay = dayKey();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    if (dayKey() !== lastDay) { lastDay = dayKey(); renderAll(); }
+    pull();
+  } else if (sync.dirty) push(true); // App wird verlassen: sofort sichern
+});
+// Änderungen aus einem anderen Tab übernehmen
+addEventListener('storage', e => { if (e.key === STORE) { const d = load(); if (d) { db = d; renderAll(); } } });
+
+renderAll();
+go('home');
+pull(true);
+
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
