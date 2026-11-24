@@ -193,6 +193,109 @@ a.btn{text-decoration:none;color:inherit}
 .msg.ok{color:var(--accent)}
 .btn:disabled{opacity:.5}
 
+/* ===== Liquid Glass (Web-Annäherung) =====
+   Glas nur für die schwebende Bedienebene: Tab-Leiste, Kopfzeilen-Knopf, Suche,
+   Umschalter, Toast, Blatt. Inhalte (Übungen, Karten, Chips) bleiben fest. */
+:root{
+  --glass-bg:rgba(44,52,48,.38);
+  --glass-bg-strong:rgba(30,36,33,.72);
+  --glass-fx:blur(20px) saturate(1.8) brightness(1.1);
+  --glass-rim:inset 0 1px 0 rgba(255,255,255,.16),inset 0 -1px 0 rgba(0,0,0,.28);
+  --glass-shadow:0 10px 28px rgba(0,0,0,.42),0 1px 2px rgba(0,0,0,.3);
+  --fill:rgba(255,255,255,.07); --fill-2:rgba(255,255,255,.12);
+  --bar-gap:max(12px,calc(var(--bottom) - 10px));
+}
+/* Leichter Markenschimmer in der Inhaltsebene, den das Glas aufnimmt */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(90% 45% at 85% -5%,rgba(198,255,61,.10),transparent 70%),radial-gradient(70% 40% at 0% 105%,rgba(111,211,154,.07),transparent 70%)}
+.glass{position:relative;isolation:isolate;background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-fx);backdrop-filter:var(--glass-fx);box-shadow:var(--glass-rim),var(--glass-shadow)}
+/* Lichtkante: oben hell, seitlich ausblendend, unten leichter Reflex */
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:2;
+  background:linear-gradient(165deg,rgba(255,255,255,.5),rgba(255,255,255,.08) 30%,rgba(255,255,255,.02) 60%,rgba(255,255,255,.2));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+/* Glanz oben */
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:-1;
+  background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,0) 50%)}
+
+/* Kopfzeile: keine Leiste mehr, sondern weicher Übergang (Scroll-Kante) */
+.top{background:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:0}
+.top::before{content:"";position:absolute;inset:0 0 -28px;z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,rgba(11,13,12,.9) 0%,rgba(11,13,12,.7) 55%,rgba(11,13,12,0) 100%);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  -webkit-mask:linear-gradient(180deg,#000 60%,transparent);mask:linear-gradient(180deg,#000 60%,transparent)}
+.top .sync{width:40px;height:40px;margin-right:0;border-radius:50%;transition:transform .25s cubic-bezier(.3,1.5,.5,1)}
+.top .sync:active{transform:scale(1.1)}
+
+/* Suche + Umschalter als Glas-Kapseln */
+.search{border-radius:22px}
+.search input{border:0;background:transparent;border-radius:22px}
+.search:focus-within{box-shadow:var(--glass-rim),var(--glass-shadow),0 0 0 2px rgba(198,255,61,.55)}
+.search svg{z-index:1;color:var(--ink-2)}
+.search .clear{z-index:3}
+.search input::placeholder{color:var(--ink-2)}
+.seg{border:0;border-radius:22px;padding:4px}
+.seg button{height:36px;border-radius:18px;color:var(--ink-2)}
+.seg button[aria-pressed="true"]{color:var(--ink)}
+.seg .knob{top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:18px;background:var(--fill-2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 2px 8px rgba(0,0,0,.25)}
+.seg:active .knob{scale:1.04}
+
+/* Tab-Leiste: schwebende Kapsel mit Linse, die zum aktiven Tab gleitet */
+.tabbar{background:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-top:0;padding:0 20px var(--bar-gap);pointer-events:none}
+.tabbar::before{content:"";position:absolute;inset:-24px 0 0;z-index:-1;pointer-events:none;
+  background:linear-gradient(0deg,rgba(11,13,12,.85),rgba(11,13,12,0))}
+.tabbar .inner{pointer-events:auto;border-radius:32px;padding:4px;height:64px;max-width:400px}
+.tabbar .pill{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / 3);border-radius:28px;background:var(--fill-2);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18);transform:translateX(calc(var(--i,0) * 100%));
+  transition:transform .42s cubic-bezier(.3,1.25,.4,1),scale .2s}
+.tabbar .inner:active .pill{scale:1.06}
+.tab{position:relative;z-index:1;justify-content:center;color:rgba(241,245,242,.72);border-radius:28px}
+.tab svg{transition:transform .2s}
+.tab:active svg{transform:scale(.88)}
+main{padding-bottom:calc(var(--bar-gap) + 100px)}
+
+/* Toast über der Tab-Leiste */
+.toast{position:fixed;border:0;border-radius:24px;padding:6px 6px 6px 18px;background:var(--glass-bg-strong);bottom:calc(var(--bar-gap) + 76px)}
+.toast button{border-radius:18px}
+.toast button:active{background:var(--fill)}
+
+/* Knöpfe als Kapseln; Hauptaktion mit Glanzkante */
+.btn{border-radius:22px}
+.btn.primary{box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -1px 0 rgba(0,0,0,.18),0 4px 14px rgba(198,255,61,.18)}
+
+/* Blatt: schwebendes Glas, abgesetzt vom Rand */
+dialog{width:calc(100% - 16px);margin:auto 8px max(8px,calc(var(--bottom) - 20px));border-radius:36px;
+  background:var(--glass-bg-strong);-webkit-backdrop-filter:blur(30px) saturate(1.7);backdrop-filter:blur(30px) saturate(1.7);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.07),0 20px 60px rgba(0,0,0,.55)}
+@media (min-width:700px){dialog{margin:auto;width:100%;max-width:480px}}
+dialog::backdrop{background:rgba(0,0,0,.42)}
+.sheet{padding:10px 20px 22px}
+.grab{background:rgba(255,255,255,.25)}
+/* Auf dem Glas: Flächen statt Glas auf Glas */
+.sheet .field input,.sheet .field select,.sheet .list-edit,.sheet .btn{background-color:var(--fill);border-color:rgba(255,255,255,.06)}
+.sheet .btn.primary{background:var(--accent);border-color:var(--accent)}
+.sheet .list-edit li{border-bottom-color:rgba(255,255,255,.07)}
+.sheet .field input,.sheet .field select{border-radius:14px}
+
+/* Ohne backdrop-filter oder mit „Transparenz reduzieren“: deckend */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .glass{background:var(--surface-2)} dialog,.toast{background:var(--surface-2)}
+  .top::before{background:linear-gradient(180deg,var(--bg) 70%,rgba(11,13,12,0))}
+}
+@media (prefers-reduced-transparency:reduce){
+  .glass,dialog,.toast{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--surface-2)}
+  .glass::before{display:none}
+  .top::before{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--bg);-webkit-mask:none;mask:none;bottom:0}
+  body::before{display:none}
+}
+/* „Kontrast erhöhen“: klare Ränder */
+@media (prefers-contrast:more){
+  .glass,dialog{background:var(--surface-2);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.55),var(--glass-shadow)}
+  .glass::before,.glass::after{display:none}
+  .tab{color:var(--ink)} .seg button{color:var(--ink)}
+}
+
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -231,19 +334,19 @@ a.btn{text-decoration:none;color:inherit}
   <svg class="logo" aria-hidden="true"><use href="#logo"/></svg>
   <h1><span>P</span>Gym</h1>
   <div class="today" id="today"></div>
-  <button type="button" class="sync" id="sync-ind" aria-label="Sicherung"><svg aria-hidden="true"><use href="#i-cloud"/></svg></button>
+  <button type="button" class="sync glass" id="sync-ind" aria-label="Sicherung"><svg aria-hidden="true"><use href="#i-cloud"/></svg></button>
 </header>
 
 <main>
   <!-- Übersicht -->
   <section class="view" id="v-home" aria-label="Übersicht">
-    <label class="search">
+    <label class="search glass">
       <span class="sr">Übung suchen</span>
       <svg aria-hidden="true"><use href="#i-search"/></svg>
       <input id="q" type="search" placeholder="Übung suchen" autocomplete="off" enterkeyhint="search">
       <button type="button" class="clear" id="q-clear" aria-label="Suche leeren" hidden><svg width="18" height="18"><use href="#i-x"/></svg></button>
     </label>
-    <div class="seg" id="seg" role="group" aria-label="Sortierung">
+    <div class="seg glass" id="seg" role="group" aria-label="Sortierung">
       <span class="knob" aria-hidden="true"></span>
       <button type="button" data-mode="time">Nach Zeit</button>
       <button type="button" data-mode="folder">Nach Ordner</button>
@@ -281,14 +384,15 @@ a.btn{text-decoration:none;color:inherit}
 </main>
 
 <nav class="tabbar" aria-label="Bereiche">
-  <div class="inner">
+  <div class="inner glass">
+    <span class="pill" aria-hidden="true"></span>
     <button type="button" class="tab" data-view="home"><svg aria-hidden="true"><use href="#i-list"/></svg>Übersicht</button>
     <button type="button" class="tab" data-view="history"><svg aria-hidden="true"><use href="#i-cal"/></svg>Verlauf</button>
     <button type="button" class="tab" data-view="manage"><svg aria-hidden="true"><use href="#i-sliders"/></svg>Verwalten</button>
   </div>
 </nav>
 
-<div class="toast" id="toast" role="status" aria-live="polite"><span id="toast-text"></span><button type="button" id="toast-undo">Rückgängig</button></div>
+<div class="toast glass" id="toast" role="status" aria-live="polite"><span id="toast-text"></span><button type="button" id="toast-undo">Rückgängig</button></div>
 <dialog id="sheet"><div class="sheet" id="sheet-body"></div></dialog>
 
 <script>
@@ -980,6 +1084,7 @@ function go(v) {
   for (const t of document.querySelectorAll('.tab')) {
     if (t.dataset.view === v) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
   }
+  $('.tabbar .inner').style.setProperty('--i', ['home', 'history', 'manage'].indexOf(v));
   window.scrollTo(0, 0);
 }
 function renderAll() {
