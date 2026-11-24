@@ -230,8 +230,11 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 
 /* Kopfzeile: keine Leiste mehr, sondern weicher Übergang (Scroll-Kante) */
 .top{background:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:0}
-.top::before{content:"";position:absolute;inset:0 0 -24px;z-index:-1;pointer-events:none;
-  background:linear-gradient(180deg,var(--bg) 0,var(--bg) calc(100% - 24px),rgba(11,13,12,0) 100%)}
+.top::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--bg)}
+/* Weicher Auslauf unter der Kopfzeile erst beim Scrollen, damit er oben nichts abdeckt (z. B. den großen Titel) */
+.top::after{content:"";position:absolute;left:0;right:0;top:100%;height:24px;pointer-events:none;
+  background:linear-gradient(180deg,var(--bg),rgba(11,13,12,0));opacity:0;transition:opacity .2s}
+.top.scrolled::after{opacity:1}
 .top .sync{width:40px;height:40px;margin-right:0;border-radius:50%;transition:scale .45s var(--spring)}
 .top .sync.touch{scale:1.12}
 
@@ -330,7 +333,7 @@ dialog.closing::backdrop{animation:fade-out .2s forwards}
 /* Ohne backdrop-filter oder mit „Transparenz reduzieren“: deckend */
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
   .glass{background:var(--surface-2)} dialog,.toast{background:var(--surface-2)}
-  .top::before{background:linear-gradient(180deg,var(--bg) 70%,rgba(11,13,12,0))}
+  .top::before{background:var(--bg)}
 }
 @media (prefers-reduced-transparency:reduce){
   .glass,dialog,.toast{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--surface-2)}
