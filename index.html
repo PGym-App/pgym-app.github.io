@@ -197,6 +197,7 @@ a.btn{text-decoration:none;color:inherit}
    Glas nur für die schwebende Bedienebene: Tab-Leiste, Kopfzeilen-Knopf, Suche,
    Umschalter, Toast, Blatt. Inhalte (Übungen, Karten, Chips) bleiben fest. */
 :root{
+  --prim-bg:linear-gradient(180deg,rgba(208,255,84,.97) 0%,rgba(198,255,61,.94) 50%,rgba(182,244,42,.93) 100%);
   --lens-bg:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.025));
   --lens-rim:inset 0 1px 0 rgba(255,255,255,.3),inset 0 -1px 0 rgba(255,255,255,.07),inset 0 0 0 .5px rgba(255,255,255,.16);
   --glass-bg:rgba(60,68,64,.05);
@@ -284,12 +285,12 @@ main{padding-bottom:calc(var(--bar-gap) + 100px)}
     linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,0) 55%);transition:--ga .35s ease-out}
 .btn.touch{scale:1.03}
 .btn.touch::before{--ga:1;transition-duration:.12s}
-.btn.primary{border-color:rgba(255,255,255,.22);color:var(--accent-ink);
-  background:linear-gradient(180deg,rgba(226,255,130,.94) 0%,rgba(198,255,61,.86) 50%,rgba(176,236,40,.84) 100%);
-  box-shadow:inset 0 1px 1px rgba(255,255,255,.85),inset 0 -3px 6px rgba(70,110,0,.35),inset 0 0 12px rgba(255,255,255,.18),
+.btn.primary{border-color:rgba(255,255,255,.16);color:var(--accent-ink);
+  background:var(--prim-bg);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 -2px 5px rgba(70,110,0,.3),
     0 6px 20px rgba(198,255,61,.24),0 1px 2px rgba(0,0,0,.3)}
 .btn.primary::before{background:radial-gradient(140px circle at var(--gx,50%) var(--gy,0),rgb(255 255 255 / calc(var(--ga) * .45)),transparent 70%),
-    radial-gradient(70% 90% at 50% -25%,rgba(255,255,255,.6),rgba(255,255,255,0) 70%)}
+    radial-gradient(60% 70% at 50% -30%,rgba(255,255,255,.32),rgba(255,255,255,0) 70%)}
 
 /* Blatt: schwebendes Glas, abgesetzt vom Rand */
 dialog{width:calc(100% - 16px);margin:auto 8px max(8px,calc(var(--bottom) - 20px));border-radius:36px;
@@ -299,15 +300,15 @@ dialog{width:calc(100% - 16px);margin:auto 8px max(8px,calc(var(--bottom) - 20px
 dialog::backdrop{background:rgba(0,0,0,.22)}
 dialog[open]{animation:sheet-in .5s var(--spring)}
 @keyframes sheet-in{from{transform:translateY(70px) scale(.92);opacity:.2}}
-dialog.closing{animation:sheet-out .3s cubic-bezier(.5,0,.75,.4) forwards;pointer-events:none}
-dialog.closing::backdrop{animation:fade-out .3s forwards}
+dialog.closing{animation:sheet-out .2s cubic-bezier(.5,0,.75,.4) forwards;pointer-events:none}
+dialog.closing::backdrop{animation:fade-out .2s forwards}
 @keyframes sheet-out{to{transform:translateY(70px) scale(.92);opacity:0}}
 @keyframes fade-out{to{opacity:0}}
 .sheet{padding:10px 20px 22px}
 .grab{background:rgba(255,255,255,.25)}
 /* Auf dem Glas: Flächen statt Glas auf Glas */
 .sheet .field input,.sheet .field select,.sheet .list-edit,.sheet .btn{background-color:var(--fill);border-color:rgba(255,255,255,.06)}
-.sheet .btn.primary{background:linear-gradient(180deg,rgba(226,255,130,.94) 0%,rgba(198,255,61,.86) 50%,rgba(176,236,40,.84) 100%);border-color:rgba(255,255,255,.22)}
+.sheet .btn.primary{background:var(--prim-bg);border-color:rgba(255,255,255,.22)}
 .sheet .list-edit li{border-bottom-color:rgba(255,255,255,.07)}
 .sheet .field input,.sheet .field select{border-radius:14px}
 
@@ -702,7 +703,7 @@ function closeSheet() {
   if (!sheet.open || closingTimer) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return sheet.close();
   sheet.classList.add('closing');
-  closingTimer = setTimeout(() => { closingTimer = null; sheet.classList.remove('closing'); sheet.close(); }, 300);
+  closingTimer = setTimeout(() => { closingTimer = null; sheet.classList.remove('closing'); sheet.close(); }, 200);
 }
 sheet.addEventListener('cancel', e => { e.preventDefault(); closeSheet(); });
 sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
