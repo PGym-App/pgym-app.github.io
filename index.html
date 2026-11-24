@@ -243,6 +243,12 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .search .clear{z-index:3}
 .search input::placeholder{color:var(--ink-2)}
 .seg{border:0;border-radius:22px;padding:4px}
+.chips{position:relative}
+.chip{position:relative;z-index:1;transition:color .25s,background .2s,border-color .2s}
+.chip[aria-pressed="true"]{background:transparent;border-color:transparent;color:var(--accent)}
+.chip-lens{position:absolute;top:0;left:0;height:34px;border-radius:17px;pointer-events:none;
+  background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent),inset 0 1px 0 rgba(255,255,255,.14);
+  transition:transform .4s var(--spring-soft),width .4s var(--spring-soft)}
 .seg button{height:36px;border-radius:18px;color:var(--ink-2)}
 .seg button[aria-pressed="true"]{color:var(--ink)}
 .seg .knob{top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:18px;background:var(--lens-bg);transition:transform .4s var(--spring-soft);
@@ -537,6 +543,22 @@ function sortByAge(list, last) {
 
 /* ---------- Übersicht ---------- */
 let query = '';
+// Linse hinter dem gewählten Ordner-Chip, gleitet beim Wechsel wie beim Umschalter
+let lensPos = null;
+function placeChipLens() {
+  const c = $('#chips'), lens = c.querySelector('.chip-lens'), sel = c.querySelector('.chip[aria-pressed="true"]');
+  if (!lens || !sel || c.hidden) return;
+  const x = sel.offsetLeft, w = sel.offsetWidth;
+  const move = lensPos && (lensPos.x !== x || lensPos.w !== w) && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Neue Linse ohne Übergang an den alten (oder gleich den neuen) Platz setzen, dann ggf. gleiten
+  const from = move ? lensPos : { x, w };
+  lens.style.transition = 'none';
+  lens.style.transform = `translateX(${from.x}px)`; lens.style.width = `${from.w}px`;
+  void lens.offsetWidth; lens.style.transition = '';
+  lens.style.transform = `translateX(${x}px)`; lens.style.width = `${w}px`;
+  if (move) stretch(lens);
+  lensPos = { x, w };
+}
 function renderHome() {
   const last = lastMap();
   const today = dayKey();
@@ -549,6 +571,8 @@ function renderHome() {
   chips.hidden = prefs.mode !== 'time';
   chips.innerHTML = [{ id: 'all', name: 'Alle' }, ...db.folders].map(f =>
     `<button type="button" class="chip" data-f="${f.id}" aria-pressed="${prefs.filter === f.id}">${esc(f.name)}</button>`).join('');
+  chips.insertAdjacentHTML('afterbegin', '<span class="chip-lens" aria-hidden="true"></span>');
+  placeChipLens();
 
   $('#seg').dataset.mode = prefs.mode;
   for (const b of $('#seg').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.mode === prefs.mode);
@@ -1167,7 +1191,10 @@ $('#home-list').addEventListener('click', e => {
 });
 $('#chips').addEventListener('click', e => {
   const c = e.target.closest('.chip'); if (!c) return;
+  if (c.dataset.f === prefs.filter) return;
   prefs.filter = c.dataset.f; savePrefs(); renderHome();
+  $(`#chips .chip[data-f="${c.dataset.f}"]`)?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+  if (!calm.matches) $('#home-list').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'ease-out' });
 });
 $('#seg').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.dataset.mode === prefs.mode) return;
