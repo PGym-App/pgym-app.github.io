@@ -199,9 +199,9 @@ a.btn{text-decoration:none;color:inherit}
 :root{
   --lens-bg:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.025));
   --lens-rim:inset 0 1px 0 rgba(255,255,255,.3),inset 0 -1px 0 rgba(255,255,255,.07),inset 0 0 0 .5px rgba(255,255,255,.16);
-  --glass-bg:rgba(48,56,52,.28);
-  --glass-bg-strong:rgba(30,36,33,.72);
-  --glass-fx:blur(14px) saturate(2.1) brightness(1.18) contrast(1.05);
+  --glass-bg:rgba(60,68,64,.05);
+  --glass-bg-strong:rgba(34,40,37,.42);
+  --glass-fx:blur(9px) saturate(2.4) brightness(1.22);
   --glass-rim:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(0,0,0,.3),inset 0 0 14px rgba(255,255,255,.04);
   --spring:cubic-bezier(.3,1.45,.5,1);
   --spring-soft:cubic-bezier(.3,1.12,.5,1);
@@ -249,8 +249,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 
 /* Tab-Leiste: schwebende Kapsel mit Linse, die zum aktiven Tab gleitet */
 .tabbar{background:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-top:0;padding:0 20px var(--bar-gap);pointer-events:none}
-.tabbar::before{content:"";position:absolute;inset:-24px 0 0;z-index:-1;pointer-events:none;
-  background:linear-gradient(0deg,rgba(11,13,12,.85),rgba(11,13,12,0))}
+.tabbar::before{content:"";position:absolute;left:0;right:0;bottom:0;height:calc(var(--bar-gap) + 16px);z-index:-1;pointer-events:none;
+  background:linear-gradient(0deg,rgba(11,13,12,.7),rgba(11,13,12,0))}
 .tabbar .inner{pointer-events:auto;border-radius:32px;padding:4px;height:64px;max-width:400px;transition:height .45s var(--spring),max-width .45s var(--spring),scale .45s var(--spring)}
 .tab .lbl{display:block;max-height:16px;transition:opacity .2s,max-height .35s var(--spring)}
 .tabbar.min .inner{height:50px;max-width:260px}
@@ -259,7 +259,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .tabbar .pill{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / 3);border-radius:28px;background:var(--lens-bg);
   box-shadow:var(--lens-rim);transform:translateX(calc(var(--i,0) * 100%));
   transition:transform .45s var(--spring-soft)}
-.tab{position:relative;z-index:1;justify-content:center;color:rgba(241,245,242,.72);border-radius:28px}
+.tab{position:relative;z-index:1;justify-content:center;color:rgba(241,245,242,.8);border-radius:28px;text-shadow:0 1px 3px rgba(0,0,0,.55)}
+.tab svg{filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 .tab svg{transition:transform .2s}
 .tab:active svg{transform:scale(.88)}
 main{padding-bottom:calc(var(--bar-gap) + 100px)}
@@ -277,10 +278,10 @@ main{padding-bottom:calc(var(--bar-gap) + 100px)}
 
 /* Blatt: schwebendes Glas, abgesetzt vom Rand */
 dialog{width:calc(100% - 16px);margin:auto 8px max(8px,calc(var(--bottom) - 20px));border-radius:36px;
-  background:var(--glass-bg-strong);-webkit-backdrop-filter:blur(30px) saturate(1.7);backdrop-filter:blur(30px) saturate(1.7);
+  background:var(--glass-bg-strong);-webkit-backdrop-filter:blur(26px) saturate(2.2) brightness(1.15);backdrop-filter:blur(26px) saturate(2.2) brightness(1.15);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.07),0 20px 60px rgba(0,0,0,.55)}
 @media (min-width:700px){dialog{margin:auto;width:100%;max-width:480px}}
-dialog::backdrop{background:rgba(0,0,0,.42)}
+dialog::backdrop{background:rgba(0,0,0,.22)}
 dialog[open]{animation:sheet-in .5s var(--spring)}
 @keyframes sheet-in{from{transform:translateY(70px) scale(.92);opacity:.2}}
 .sheet{padding:10px 20px 22px}
