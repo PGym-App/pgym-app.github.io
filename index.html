@@ -231,7 +231,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 /* Kopfzeile: keine Leiste mehr, sondern weicher Übergang (Scroll-Kante) */
 .top{background:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:0}
 .top::before{content:"";position:absolute;inset:0 0 -24px;z-index:-1;pointer-events:none;
-  background:linear-gradient(180deg,var(--bg) 0%,var(--bg) 72%,rgba(11,13,12,0) 100%)}
+  background:linear-gradient(180deg,var(--bg) 0,var(--bg) calc(100% - 24px),rgba(11,13,12,0) 100%)}
 .top .sync{width:40px;height:40px;margin-right:0;border-radius:50%;transition:scale .45s var(--spring)}
 .top .sync.touch{scale:1.12}
 
@@ -250,9 +250,9 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent),inset 0 1px 0 rgba(255,255,255,.14);
   transition:transform .4s var(--spring-soft),width .4s var(--spring-soft)}
 .seg button{height:36px;border-radius:18px;color:var(--ink-2)}
-.seg button[aria-pressed="true"]{color:var(--ink)}
-.seg .knob{top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:18px;background:var(--lens-bg);transition:transform .4s var(--spring-soft);
-  box-shadow:var(--lens-rim),0 1px 6px rgba(0,0,0,.14)}
+.seg button[aria-pressed="true"]{color:var(--accent)}
+.seg .knob{top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:18px;background:var(--accent-soft);transition:transform .4s var(--spring-soft);
+  box-shadow:inset 0 0 0 1px var(--accent),inset 0 1px 0 rgba(255,255,255,.14)}
 
 /* Tab-Leiste: schwebende Kapsel mit Linse, die zum aktiven Tab gleitet */
 .tabbar{background:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-top:0;padding:0 20px var(--bar-gap);pointer-events:none}
@@ -311,7 +311,7 @@ dialog.closing::backdrop{animation:fade-out .2s forwards}
 @keyframes sheet-out{to{transform:translateY(70px) scale(.92);opacity:0}}
 @keyframes fade-out{to{opacity:0}}
 .sheet{padding:10px 20px 22px}
-.grab{background:rgba(255,255,255,.25)}
+.grab{background:rgba(255,255,255,.25);outline:none}
 /* Auf dem Glas: Flächen statt Glas auf Glas */
 .sheet .field input,.sheet .field select,.sheet .list-edit,.sheet .btn{background-color:var(--fill);border-color:rgba(255,255,255,.06)}
 .sheet .btn.primary{background:var(--prim-bg);border-color:rgba(255,255,255,.22)}
@@ -543,21 +543,24 @@ function sortByAge(list, last) {
 
 /* ---------- Übersicht ---------- */
 let query = '';
-// Linse hinter dem gewählten Ordner-Chip, gleitet beim Wechsel wie beim Umschalter
-let lensPos = null;
-function placeChipLens() {
+// Linse hinter dem gewählten Ordner-Chip, gleitet beim Wechsel wie beim Umschalter.
+// Die Chips bleiben dabei dieselben Elemente, nur die Auswahl wechselt.
+let chipsKey = '';
+function placeChipLens(instant) {
   const c = $('#chips'), lens = c.querySelector('.chip-lens'), sel = c.querySelector('.chip[aria-pressed="true"]');
   if (!lens || !sel || c.hidden) return;
   const x = sel.offsetLeft, w = sel.offsetWidth;
-  const move = lensPos && (lensPos.x !== x || lensPos.w !== w) && !matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // Neue Linse ohne Übergang an den alten (oder gleich den neuen) Platz setzen, dann ggf. gleiten
-  const from = move ? lensPos : { x, w };
-  lens.style.transition = 'none';
-  lens.style.transform = `translateX(${from.x}px)`; lens.style.width = `${from.w}px`;
-  void lens.offsetWidth; lens.style.transition = '';
-  lens.style.transform = `translateX(${x}px)`; lens.style.width = `${w}px`;
-  if (move) stretch(lens);
-  lensPos = { x, w };
+  const had = lens.dataset.x != null;
+  if (had && +lens.dataset.x === x && +lens.dataset.w === w) return;
+  if (!had || instant) {
+    lens.style.transition = 'none';
+    lens.style.transform = `translateX(${x}px)`; lens.style.width = `${w}px`;
+    void lens.offsetWidth; lens.style.transition = '';
+  } else {
+    lens.style.transform = `translateX(${x}px)`; lens.style.width = `${w}px`;
+    stretch(lens);
+  }
+  lens.dataset.x = x; lens.dataset.w = w;
 }
 function renderHome() {
   const last = lastMap();
@@ -568,11 +571,17 @@ function renderHome() {
   // Ordnerfilter
   if (prefs.filter !== 'all' && !folderById(prefs.filter)) prefs.filter = 'all';
   const chips = $('#chips');
+  const wasHidden = chips.hidden;
   chips.hidden = prefs.mode !== 'time';
-  chips.innerHTML = [{ id: 'all', name: 'Alle' }, ...db.folders].map(f =>
-    `<button type="button" class="chip" data-f="${f.id}" aria-pressed="${prefs.filter === f.id}">${esc(f.name)}</button>`).join('');
-  chips.insertAdjacentHTML('afterbegin', '<span class="chip-lens" aria-hidden="true"></span>');
-  placeChipLens();
+  const key = db.folders.map(f => `${f.id}:${f.name}`).join('|');
+  if (key !== chipsKey || !chips.querySelector('.chip-lens')) {
+    chips.innerHTML = '<span class="chip-lens" aria-hidden="true"></span>' + [{ id: 'all', name: 'Alle' }, ...db.folders].map(f =>
+      `<button type="button" class="chip" data-f="${f.id}" aria-pressed="${prefs.filter === f.id}">${esc(f.name)}</button>`).join('');
+    chipsKey = key;
+  } else {
+    for (const b of chips.querySelectorAll('.chip')) b.setAttribute('aria-pressed', b.dataset.f === prefs.filter);
+  }
+  placeChipLens(wasHidden);
 
   $('#seg').dataset.mode = prefs.mode;
   for (const b of $('#seg').querySelectorAll('button')) b.setAttribute('aria-pressed', b.dataset.mode === prefs.mode);
@@ -717,7 +726,7 @@ function renderHistory() {
 /* ---------- Blatt ---------- */
 const sheet = $('#sheet');
 function openSheet(html, bind) {
-  $('#sheet-body').innerHTML = `<div class="grab" aria-hidden="true"></div>${html}`;
+  $('#sheet-body').innerHTML = `<div class="grab" aria-hidden="true" tabindex="-1" autofocus></div>${html}`;
   if (closingTimer) { clearTimeout(closingTimer); closingTimer = null; sheet.classList.remove('closing'); }
   if (!sheet.open) sheet.showModal();
   bind && bind($('#sheet-body'));
@@ -829,7 +838,6 @@ function openExercise(id, presetName = '') {
       ${ex ? `<button type="button" class="btn danger wide" id="e-del">Übung entfernen</button>` : `<button type="button" class="btn wide" data-close>Abbrechen</button>`}
     </div>`, root => {
     const name = root.querySelector('#e-name');
-    if (!ex) setTimeout(() => name.focus(), 50);
     root.querySelector('[data-close]')?.addEventListener('click', closeSheet);
     const submit = () => {
       const n = name.value.trim().replace(/\s+/g, ' ');
@@ -871,7 +879,6 @@ function openFolder(id, after) {
       <button type="button" class="btn danger wide" id="f-del">Ordner löschen</button>` : `<button type="button" class="btn wide" data-close>Abbrechen</button>`}
     </div>`, root => {
     const name = root.querySelector('#f-name');
-    if (!f) setTimeout(() => name.focus(), 50);
     root.querySelector('[data-close]')?.addEventListener('click', closeSheet);
     const submit = () => {
       const n = name.value.trim().replace(/\s+/g, ' ');
@@ -1193,8 +1200,11 @@ $('#chips').addEventListener('click', e => {
   const c = e.target.closest('.chip'); if (!c) return;
   if (c.dataset.f === prefs.filter) return;
   prefs.filter = c.dataset.f; savePrefs(); renderHome();
-  $(`#chips .chip[data-f="${c.dataset.f}"]`)?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
-  if (!calm.matches) $('#home-list').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 260, easing: 'ease-out' });
+  // Chip ganz ins Bild holen, nur waagerecht (die Seite selbst bleibt stehen)
+  const bar = $('#chips'), l = c.offsetLeft - 16, r = c.offsetLeft + c.offsetWidth + 16 - bar.clientWidth;
+  if (l < bar.scrollLeft) bar.scrollTo({ left: l, behavior: 'smooth' });
+  else if (r > bar.scrollLeft) bar.scrollTo({ left: r, behavior: 'smooth' });
+  if (!calm.matches) $('#home-list').animate([{ opacity: .3 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
 });
 $('#seg').addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b || b.dataset.mode === prefs.mode) return;
