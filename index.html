@@ -235,6 +235,10 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .top .sync{width:40px;height:40px;margin-right:0;border-radius:50%;transition:scale .45s var(--spring)}
 .top .sync.touch{scale:1.12}
 
+/* Großer Titel der Ansicht (scrollt normal unter die deckende Kopfzeile) */
+.big-title{font:800 34px/1.1 var(--font-display);letter-spacing:-.025em;margin:4px 2px 14px}
+.section-t.first{margin-top:4px}
+
 /* Suche + Umschalter als Glas-Kapseln */
 .search{border-radius:22px}
 .search input{border:0;background:transparent;border-radius:22px}
@@ -386,6 +390,7 @@ dialog.closing::backdrop{animation:fade-out .2s forwards}
 <main>
   <!-- Übersicht -->
   <section class="view" id="v-home" aria-label="Übersicht">
+    <h2 class="big-title">Übersicht</h2>
     <label class="search glass">
       <span class="sr">Übung suchen</span>
       <svg aria-hidden="true"><use href="#i-search"/></svg>
@@ -404,14 +409,15 @@ dialog.closing::backdrop{animation:fade-out .2s forwards}
 
   <!-- Verlauf -->
   <section class="view" id="v-history" aria-label="Verlauf" hidden>
-    <h2>Verlauf</h2>
+    <h2 class="big-title">Verlauf</h2>
     <div class="row-btns"><button type="button" class="btn" id="add-past"><svg><use href="#i-plus"/></svg>Training nachtragen</button></div>
     <div id="history-list"></div>
   </section>
 
   <!-- Verwalten -->
   <section class="view" id="v-manage" aria-label="Verwalten" hidden>
-    <h2>Übungen</h2>
+    <h2 class="big-title">Verwalten</h2>
+    <div class="section-t first">Übungen</div>
     <div class="row-btns">
       <button type="button" class="btn primary" id="add-ex"><svg><use href="#i-plus"/></svg>Übung</button>
       <button type="button" class="btn" id="add-folder"><svg><use href="#i-plus"/></svg>Ordner</button>
