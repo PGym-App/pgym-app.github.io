@@ -202,6 +202,7 @@ a.btn{text-decoration:none;color:inherit}
   --glass-fx:blur(14px) saturate(2.1) brightness(1.18) contrast(1.05);
   --glass-rim:inset 0 1px 0 rgba(255,255,255,.22),inset 0 -1px 0 rgba(0,0,0,.3),inset 0 0 14px rgba(255,255,255,.04);
   --spring:cubic-bezier(.3,1.45,.5,1);
+  --spring-soft:cubic-bezier(.3,1.12,.5,1);
   --glass-shadow:0 10px 28px rgba(0,0,0,.42),0 1px 2px rgba(0,0,0,.3);
   --fill:rgba(255,255,255,.07); --fill-2:rgba(255,255,255,.12);
   --bar-gap:max(12px,calc(var(--bottom) - 10px));
@@ -226,10 +227,8 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 
 /* Kopfzeile: keine Leiste mehr, sondern weicher Übergang (Scroll-Kante) */
 .top{background:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:0}
-.top::before{content:"";position:absolute;inset:0 0 -28px;z-index:-1;pointer-events:none;
-  background:linear-gradient(180deg,rgba(11,13,12,.9) 0%,rgba(11,13,12,.7) 55%,rgba(11,13,12,0) 100%);
-  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
-  -webkit-mask:linear-gradient(180deg,#000 60%,transparent);mask:linear-gradient(180deg,#000 60%,transparent)}
+.top::before{content:"";position:absolute;inset:0 0 -24px;z-index:-1;pointer-events:none;
+  background:linear-gradient(180deg,var(--bg) 0%,var(--bg) 72%,rgba(11,13,12,0) 100%)}
 .top .sync{width:40px;height:40px;margin-right:0;border-radius:50%;transition:scale .45s var(--spring)}
 .top .sync.touch{scale:1.12}
 
@@ -243,7 +242,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .seg{border:0;border-radius:22px;padding:4px}
 .seg button{height:36px;border-radius:18px;color:var(--ink-2)}
 .seg button[aria-pressed="true"]{color:var(--ink)}
-.seg .knob{top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:18px;background:var(--fill-2);transition:transform .45s var(--spring);
+.seg .knob{top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:18px;background:var(--fill-2);transition:transform .4s var(--spring-soft);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 2px 8px rgba(0,0,0,.25)}
 
 /* Tab-Leiste: schwebende Kapsel mit Linse, die zum aktiven Tab gleitet */
@@ -257,7 +256,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .tabbar.min .tab{gap:0}
 .tabbar .pill{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / 3);border-radius:28px;background:var(--fill-2);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.18);transform:translateX(calc(var(--i,0) * 100%));
-  transition:transform .5s var(--spring)}
+  transition:transform .45s var(--spring-soft)}
 .tab{position:relative;z-index:1;justify-content:center;color:rgba(241,245,242,.72);border-radius:28px}
 .tab svg{transition:transform .2s}
 .tab:active svg{transform:scale(.88)}
@@ -1137,7 +1136,7 @@ const calm = matchMedia('(prefers-reduced-motion: reduce)');
 // Linse dehnt sich beim Gleiten wie ein Tropfen
 function stretch(el) {
   if (!el || calm.matches || !el.animate) return;
-  el.animate([{ scale: '1 1' }, { scale: '1.22 .9', offset: .3 }, { scale: '.97 1.03', offset: .7 }, { scale: '1 1' }], { duration: 520, easing: 'ease-out' });
+  el.animate([{ scale: '1 1' }, { scale: '1.07 .97', offset: .35 }, { scale: '1 1' }], { duration: 400, easing: 'ease-out' });
 }
 // Berührtes Glas leuchtet am Finger auf und wächst leicht
 const glow = (g, e) => { const r = g.getBoundingClientRect(); g.style.setProperty('--gx', `${e.clientX - r.left}px`); g.style.setProperty('--gy', `${e.clientY - r.top}px`); };
