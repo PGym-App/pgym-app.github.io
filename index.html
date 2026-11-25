@@ -127,6 +127,9 @@ h2{font:700 28px/1.1 var(--font-display);letter-spacing:-.02em;margin:10px 0 14p
 .item.muted{color:var(--ink-3);font-size:14px;pointer-events:none}
 .note{font-size:13px;color:var(--ink-3);margin:6px 2px 14px}
 .note.version{text-align:center;margin-top:28px}
+/* Sehr lange Namen ohne Leerzeichen umbrechen, damit Knöpfe daneben sichtbar bleiben */
+.card-h b,.item span,.day .names span,.sheet .list-edit li span{min-width:0;overflow-wrap:anywhere}
+.card-h .icon-btn,.item svg,.sheet .list-edit .icon-btn{flex:none}
 .section-t{margin:26px 2px 10px;font:700 13px/1 var(--font);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2)}
 
 /* Tab-Leiste */
@@ -568,7 +571,7 @@ let query = '';
 let chipsKey = '';
 function placeChipLens(instant) {
   const c = $('#chips'), lens = c.querySelector('.chip-lens'), sel = c.querySelector('.chip[aria-pressed="true"]');
-  if (!lens || !sel || c.hidden) return;
+  if (!lens || !sel || c.hidden || !c.offsetParent) return; // ausgeblendet: nichts messbar, beim Zurückkehren neu setzen
   const x = sel.offsetLeft, w = sel.offsetWidth;
   const had = lens.dataset.x != null;
   if (had && +lens.dataset.x === x && +lens.dataset.w === w) return;
@@ -582,7 +585,10 @@ function placeChipLens(instant) {
   }
   lens.dataset.x = x; lens.dataset.w = w;
 }
+// Noch fliegende Kopie einer abgehakten Übung entfernen (neue Liste oder anderer Tab)
+const dropGhosts = () => document.querySelectorAll('.ex-ghost').forEach(g => g.done ? g.done() : g.remove());
 function renderHome() {
+  dropGhosts();
   const last = lastMap();
   const today = dayKey();
   const q = norm(query.trim());
@@ -646,7 +652,6 @@ function renderHome() {
 
 /* Sanftes Umsortieren (FLIP) */
 function withFlip(fn, focusId) {
-  document.querySelectorAll('.ex-ghost').forEach(g => g.remove());
   const before = new Map();
   document.querySelectorAll('.ex[data-id]').forEach(el => before.set(el.dataset.id, el.getBoundingClientRect().top));
   fn();
@@ -684,7 +689,7 @@ function withFlip(fn, focusId) {
         left: `${r.left + scrollX}px`, top: `${top0 + scrollY}px`, width: `${r.width}px`, height: `${r.height}px` });
       document.body.appendChild(ghost);
       el.style.visibility = 'hidden';
-      const done = () => { ghost.remove(); el.style.visibility = ''; };
+      const done = ghost.done = () => { ghost.remove(); el.style.visibility = ''; };
       ghost.animate(frames, exitY == null ? { duration, easing: 'cubic-bezier(.45,0,.2,1)' } : { duration });
       ghost.animate([
         { scale: 1, boxShadow: '0 0 0 rgba(0,0,0,0)' },
@@ -718,12 +723,12 @@ function toggle(exId) {
     const el = document.querySelector(`.ex[data-id="${exId}"]`);
     if (el && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       el.dataset.age = 'done'; el.setAttribute('aria-pressed', 'true');
-      save(); toggling = true;
+      save(); renderHistory(); toggling = true;
       setTimeout(() => { toggling = false; withFlip(renderHome, exId); }, 100);
       return;
     }
   }
-  save();
+  save(); renderHistory();
   withFlip(renderHome, exId);
 }
 
@@ -891,6 +896,7 @@ function openExercise(id, presetName = '') {
     const name = root.querySelector('#e-name');
     root.querySelector('[data-close]')?.addEventListener('click', closeSheet);
     const submit = () => {
+      if (closingTimer) return; // Blatt schließt schon (z. B. doppelt getippt)
       const n = name.value.trim().replace(/\s+/g, ' ');
       if (!n) { name.focus(); return; }
       const dupe = active().find(e => e.id !== id && norm(e.name) === norm(n));
@@ -932,6 +938,7 @@ function openFolder(id, after) {
     const name = root.querySelector('#f-name');
     root.querySelector('[data-close]')?.addEventListener('click', closeSheet);
     const submit = () => {
+      if (closingTimer) return; // Blatt schließt schon (z. B. doppelt getippt)
       const n = name.value.trim().replace(/\s+/g, ' ');
       if (!n) { name.focus(); return; }
       if (db.folders.some(x => x !== f && norm(x.name) === norm(n))) { alert(`Den Ordner „${n}“ gibt es schon.`); return; }
@@ -1228,6 +1235,7 @@ setInterval(renderSync, 60000);
 let view = 'home';
 function go(v) {
   view = v;
+  dropGhosts();
   for (const s of document.querySelectorAll('.view')) s.hidden = s.id !== `v-${v}`;
   for (const t of document.querySelectorAll('.tab')) {
     if (t.dataset.view === v) t.setAttribute('aria-current', 'page'); else t.removeAttribute('aria-current');
@@ -1236,6 +1244,7 @@ function go(v) {
   if (bar.style.getPropertyValue('--i') !== String(i)) { bar.style.setProperty('--i', i); stretch($('.tabbar .pill')); }
   $('.tabbar').classList.remove('min');
   window.scrollTo(0, 0);
+  if (v === 'home') placeChipLens(true);
 }
 function renderAll() {
   $('#today').textContent = new Date().toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'long' });
@@ -1312,7 +1321,7 @@ renderAll();
 go('home');
 pull(true);
 
-const VERSION = 26; // zusammen mit CACHE in sw.js hochzählen
+const VERSION = 27; // zusammen mit CACHE in sw.js hochzählen
 $('#version').textContent = `PGym · Version ${VERSION}`;
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
