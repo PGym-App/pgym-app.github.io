@@ -666,11 +666,11 @@ function withFlip(fn, focusId) {
       const exitY = r.top > maxY ? maxY : r.top < minY ? minY : null;
       let duration, frames;
       if (exitY == null) {
-        duration = Math.min(1700, 1100 + Math.abs(dy) * .4);
+        duration = Math.min(1050, 650 + Math.abs(dy) * .3);
         frames = [{ transform: 'none' }, { transform: `translateY(${-dy}px)` }];
       } else {
-        const visible = Math.min(1800, 1200 + Math.abs(exitY - top0) * .9);
-        duration = visible + 250;
+        const visible = Math.min(1100, 700 + Math.abs(exitY - top0) * .55);
+        duration = visible + 200;
         frames = [
           { transform: 'none', easing: 'cubic-bezier(.45,0,.75,.75)' },
           { transform: `translateY(${exitY - top0}px)`, offset: visible / duration, easing: 'linear' },
@@ -693,7 +693,7 @@ function withFlip(fn, focusId) {
         { scale: 1, boxShadow: '0 0 0 rgba(0,0,0,0)' }
       ], { duration, easing: 'ease-in-out' }).finished.then(done, done);
     } else {
-      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 750, easing: 'cubic-bezier(.3,.7,.2,1)', delay: 120, fill: 'backwards' });
+      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 600, easing: 'cubic-bezier(.3,.7,.2,1)', delay: 100, fill: 'backwards' });
     }
   });
 }
@@ -719,7 +719,7 @@ function toggle(exId) {
     if (el && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       el.dataset.age = 'done'; el.setAttribute('aria-pressed', 'true');
       save(); toggling = true;
-      setTimeout(() => { toggling = false; withFlip(renderHome, exId); }, 150);
+      setTimeout(() => { toggling = false; withFlip(renderHome, exId); }, 120);
       return;
     }
   }
@@ -1309,7 +1309,7 @@ renderAll();
 go('home');
 pull(true);
 
-const VERSION = 24; // zusammen mit CACHE in sw.js hochzählen
+const VERSION = 25; // zusammen mit CACHE in sw.js hochzählen
 $('#version').textContent = `PGym · Version ${VERSION}`;
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
