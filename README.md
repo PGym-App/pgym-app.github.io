@@ -56,4 +56,4 @@ PGym bekommt eine eigene Adresse über eine kostenlose GitHub-Organisation. So k
 
 ## Später etwas ändern
 
-Geänderte Dateien einfach erneut ins GitHub-Repository hochladen (gleiche Namen überschreiben die alten). Zusätzlich in `sw.js` die Zeile `const CACHE = 'pgym-v23';` hochzählen (z. B. `pgym-v24`) und in `index.html` `const VERSION = 23;` auf dieselbe Zahl setzen, damit das iPhone die neue Version sicher lädt. Deine Trainingsdaten bleiben dabei erhalten.
+Geänderte Dateien einfach erneut ins GitHub-Repository hochladen (gleiche Namen überschreiben die alten). Zusätzlich in `sw.js` die Zeile `const CACHE = 'pgym-v24';` hochzählen (z. B. `pgym-v25`) und in `index.html` `const VERSION = 24;` auf dieselbe Zahl setzen, damit das iPhone die neue Version sicher lädt. Deine Trainingsdaten bleiben dabei erhalten.

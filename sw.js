@@ -1,5 +1,5 @@
 // PGym Offline-Cache. Bei jeder Änderung an der App die Versionsnummer erhöhen.
-const CACHE = 'pgym-v23';
+const CACHE = 'pgym-v24';
 const FILES = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

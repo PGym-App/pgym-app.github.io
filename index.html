@@ -274,9 +274,10 @@ main{padding-top:calc(var(--top) + 66px)}
 .tabbar.min .inner{height:50px;width:260px}
 .tabbar.min .tab .lbl{opacity:0;max-height:0;transition:opacity .12s,max-height .35s var(--spring-soft)}
 .tabbar.min .tab{gap:0}
-.tabbar .pill{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px) / 3);border-radius:28px;background:var(--lens-bg);
-  box-shadow:var(--lens-rim);transform:translateX(calc(var(--i,0) * 100%));
-  transition:transform .45s var(--spring-soft)}
+/* Linse über left statt transform: Safari rechnet Prozent-Verschiebungen nur einmal am Anfang aus –
+   wächst die Leiste gleichzeitig, landete die Linse daneben und sprang am Ende. */
+.tabbar .pill{position:absolute;top:4px;bottom:4px;left:calc(4px + var(--i,0) * (100% - 8px) / 3);width:calc((100% - 8px) / 3);border-radius:28px;background:var(--lens-bg);
+  box-shadow:var(--lens-rim);transition:left .5s var(--spring-soft)}
 .tab{position:relative;z-index:1;justify-content:center;color:rgba(241,245,242,.8);border-radius:28px;text-shadow:0 1px 3px rgba(0,0,0,.55)}
 .tab svg{filter:drop-shadow(0 1px 2px rgba(0,0,0,.5))}
 .tab svg{transition:transform .2s}
@@ -645,6 +646,7 @@ function renderHome() {
 
 /* Sanftes Umsortieren (FLIP) */
 function withFlip(fn, focusId) {
+  document.querySelectorAll('.ex-ghost').forEach(g => g.remove());
   const before = new Map();
   document.querySelectorAll('.ex[data-id]').forEach(el => before.set(el.dataset.id, el.getBoundingClientRect().top));
   fn();
@@ -655,35 +657,43 @@ function withFlip(fn, focusId) {
     const dy = t - el.getBoundingClientRect().top;
     if (Math.abs(dy) < 1) return;
     if (el.dataset.id === focusId) {
-      // Die angetippte Übung hebt sich leicht an und gleitet sichtbar an ihren neuen Platz
-      // Liegt das Ziel außerhalb des Bildschirms, gleitet sie ruhig bis zum Rand und
-      // legt den unsichtbaren Rest schnell zurück – sonst schießt sie nur hinaus.
+      // Die angetippte Übung hebt sich leicht an und gleitet sichtbar an ihren neuen Platz.
+      // Es gleitet eine Kopie vom alten Platz aus: Safari zeichnet ein Element nicht, dessen
+      // echter Platz weit außerhalb des Bildschirms liegt – die Übung wäre einfach weg.
+      // Liegt das Ziel außerhalb, gleitet sie ruhig bis zum Rand und legt den Rest schnell zurück.
       const r = el.getBoundingClientRect(), top0 = r.top + dy;
       const minY = ($('.top')?.getBoundingClientRect().bottom || 0) - r.height - 10, maxY = innerHeight + 10;
       const exitY = r.top > maxY ? maxY : r.top < minY ? minY : null;
       let duration, frames;
       if (exitY == null) {
         duration = Math.min(1700, 1100 + Math.abs(dy) * .4);
-        frames = [{ transform: `translateY(${dy}px)` }, { transform: 'none' }];
+        frames = [{ transform: 'none' }, { transform: `translateY(${-dy}px)` }];
       } else {
-        const visible = Math.min(1700, 1100 + Math.abs(exitY - top0) * .9);
+        const visible = Math.min(1800, 1200 + Math.abs(exitY - top0) * .9);
         duration = visible + 250;
         frames = [
-          { transform: `translateY(${dy}px)`, easing: 'cubic-bezier(.45,0,.75,.75)' },
-          { transform: `translateY(${exitY - r.top}px)`, offset: visible / duration, easing: 'linear' },
-          { transform: 'none' }
+          { transform: 'none', easing: 'cubic-bezier(.45,0,.75,.75)' },
+          { transform: `translateY(${exitY - top0}px)`, offset: visible / duration, easing: 'linear' },
+          { transform: `translateY(${-dy}px)` }
         ];
       }
-      el.style.position = 'relative'; el.style.zIndex = '5';
-      el.animate(frames, exitY == null ? { duration, easing: 'cubic-bezier(.45,0,.2,1)' } : { duration });
-      el.animate([
+      const ghost = el.cloneNode(true);
+      ghost.removeAttribute('data-id'); ghost.classList.add('ex-ghost');
+      ghost.setAttribute('aria-hidden', 'true'); ghost.tabIndex = -1;
+      Object.assign(ghost.style, { position: 'absolute', margin: '0', zIndex: '5', pointerEvents: 'none',
+        left: `${r.left + scrollX}px`, top: `${top0 + scrollY}px`, width: `${r.width}px`, height: `${r.height}px` });
+      document.body.appendChild(ghost);
+      el.style.visibility = 'hidden';
+      const done = () => { ghost.remove(); el.style.visibility = ''; };
+      ghost.animate(frames, exitY == null ? { duration, easing: 'cubic-bezier(.45,0,.2,1)' } : { duration });
+      ghost.animate([
         { scale: 1, boxShadow: '0 0 0 rgba(0,0,0,0)' },
         { scale: 1.03, boxShadow: '0 18px 40px rgba(0,0,0,.55)', offset: .2 },
         { scale: 1.03, boxShadow: '0 18px 40px rgba(0,0,0,.55)', offset: .8 },
         { scale: 1, boxShadow: '0 0 0 rgba(0,0,0,0)' }
-      ], { duration, easing: 'ease-in-out' }).finished.then(() => { el.style.position = ''; el.style.zIndex = ''; }, () => {});
+      ], { duration, easing: 'ease-in-out' }).finished.then(done, done);
     } else {
-      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 750, easing: 'cubic-bezier(.3,.7,.2,1)', delay: 120 });
+      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 750, easing: 'cubic-bezier(.3,.7,.2,1)', delay: 120, fill: 'backwards' });
     }
   });
 }
@@ -1212,7 +1222,7 @@ addEventListener('offline', () => { syncOffline = true; renderSync(); });
 setInterval(renderSync, 60000);
 
 /* ---------- Navigation ---------- */
-let view = 'home', holdMin = 0;
+let view = 'home';
 function go(v) {
   view = v;
   for (const s of document.querySelectorAll('.view')) s.hidden = s.id !== `v-${v}`;
@@ -1221,12 +1231,7 @@ function go(v) {
   }
   const bar = $('.tabbar .inner'), i = ['home', 'history', 'manage'].indexOf(v);
   if (bar.style.getPropertyValue('--i') !== String(i)) { bar.style.setProperty('--i', i); stretch($('.tabbar .pill')); }
-  // Ist die Leiste klein, gleitet erst die Linse und dann wird die Leiste groß –
-  // beides gleichzeitig verzieht die Linse.
-  const tb = $('.tabbar');
-  clearTimeout(holdMin);
-  if (tb.classList.contains('min') && !calm.matches) holdMin = setTimeout(() => { holdMin = 0; tb.classList.remove('min'); }, 320);
-  else { holdMin = 0; tb.classList.remove('min'); }
+  $('.tabbar').classList.remove('min');
   window.scrollTo(0, 0);
 }
 function renderAll() {
@@ -1284,7 +1289,6 @@ let lastY = scrollY;
 addEventListener('scroll', () => {
   const y = scrollY, d = y - lastY, bar = $('.tabbar');
   $('#top').classList.toggle('scrolled', y > 4);
-  if (holdMin) { lastY = y; return; }
   if (y < 60 || d < -8) bar.classList.remove('min');
   else if (d > 8) bar.classList.add('min');
   if (Math.abs(d) > 8 || y < 60) lastY = y;
@@ -1305,7 +1309,7 @@ renderAll();
 go('home');
 pull(true);
 
-const VERSION = 23; // zusammen mit CACHE in sw.js hochzählen
+const VERSION = 24; // zusammen mit CACHE in sw.js hochzählen
 $('#version').textContent = `PGym · Version ${VERSION}`;
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
