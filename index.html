@@ -229,13 +229,15 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .tabbar .inner.touch{scale:1.025}
 
 /* Kopfzeile: keine Leiste mehr, sondern weicher Übergang (Scroll-Kante) */
-.top{background:none;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:0}
+/* Fest oben, ganz deckend und ohne Filter: so legt iOS 26 seine Rand-Unschärfe nicht über die Kopfzeile */
+.top{position:fixed;top:0;left:0;right:0;background:var(--bg);-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:0}
+main{padding-top:calc(var(--top) + 66px)}
 .top::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:var(--bg)}
 /* Weicher Auslauf unter der Kopfzeile erst beim Scrollen, damit er oben nichts abdeckt (z. B. den großen Titel) */
 .top::after{content:"";position:absolute;left:0;right:0;top:100%;height:24px;pointer-events:none;
   background:linear-gradient(180deg,var(--bg),rgba(11,13,12,0));opacity:0;transition:opacity .2s}
 .top.scrolled::after{opacity:1}
-.top .sync{width:40px;height:40px;margin-right:0;border-radius:50%;transition:scale .45s var(--spring)}
+.top .sync{width:40px;height:40px;margin-right:0;border-radius:50%;transition:scale .45s var(--spring);-webkit-backdrop-filter:none;backdrop-filter:none;background:rgba(255,255,255,.07)}
 .top .sync.touch{scale:1.12}
 
 /* Großer Titel der Ansicht (scrollt normal unter die deckende Kopfzeile) */
@@ -317,11 +319,11 @@ dialog.closing{animation:sheet-out .2s cubic-bezier(.5,0,.75,.4) forwards;pointe
 dialog.closing::backdrop{animation:fade-out .2s forwards}
 @keyframes sheet-out{to{transform:translateY(70px) scale(.92);opacity:0}}
 @keyframes fade-out{to{opacity:0}}
-.sheet{position:relative;padding:22px 20px 22px}
-.sheet h3{padding-right:44px}
+.sheet{position:relative;padding:18px 20px 20px}
+.sheet h3{padding-right:44px;line-height:1.1}
 .grab{width:0;height:0;margin:0;background:none;outline:none}
 /* Schließen-Knopf: Fläche auf dem Glas (kein Glas auf Glas) */
-.sheet-x{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+.sheet-x{position:absolute;top:13px;right:13px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
   color:var(--ink-2);background:var(--fill-2);box-shadow:inset 0 1px 0 rgba(255,255,255,.16);transition:scale .4s var(--spring),background .15s}
 .sheet-x:active{scale:.9;background:rgba(255,255,255,.18)}
 /* Auf dem Glas: Flächen statt Glas auf Glas */
