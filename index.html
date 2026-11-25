@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="PGym">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -245,9 +245,10 @@ main{padding-top:calc(var(--top) + 66px)}
 .section-t.first{margin-top:4px}
 
 /* Suche + Umschalter als Glas-Kapseln */
-.search{border-radius:22px}
+.search{border-radius:22px;transition:scale .6s cubic-bezier(.25,.8,.3,1),box-shadow .25s}
+.search.touch{scale:1.012}
 .search input{border:0;background:transparent;border-radius:22px}
-.search:focus-within{box-shadow:var(--glass-rim),var(--glass-shadow),0 0 0 2px rgba(198,255,61,.55)}
+.search:focus-within{box-shadow:var(--glass-rim),var(--glass-shadow),0 0 0 1.5px var(--accent)}
 .search svg{z-index:1;color:var(--ink-2)}
 .search .clear{z-index:3}
 .search input::placeholder{color:var(--ink-2)}
@@ -653,7 +654,7 @@ function withFlip(fn, focusId) {
     if (Math.abs(dy) < 1) return;
     if (el.dataset.id === focusId) {
       // Die angetippte Übung hebt sich leicht an und gleitet sichtbar an ihren neuen Platz
-      const duration = Math.min(1000, 560 + Math.abs(dy) * .25);
+      const duration = Math.min(1500, 950 + Math.abs(dy) * .3);
       el.style.position = 'relative'; el.style.zIndex = '5';
       el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration, easing: 'cubic-bezier(.45,0,.2,1)' });
       el.animate([
@@ -663,7 +664,7 @@ function withFlip(fn, focusId) {
         { scale: 1, boxShadow: '0 0 0 rgba(0,0,0,0)' }
       ], { duration, easing: 'ease-in-out' }).finished.then(() => { el.style.position = ''; el.style.zIndex = ''; }, () => {});
     } else {
-      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 520, easing: 'cubic-bezier(.3,.7,.2,1)', delay: 60 });
+      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 750, easing: 'cubic-bezier(.3,.7,.2,1)', delay: 120 });
     }
   });
 }
@@ -689,7 +690,7 @@ function toggle(exId) {
     if (el && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       el.dataset.age = 'done'; el.setAttribute('aria-pressed', 'true');
       save(); toggling = true;
-      setTimeout(() => { toggling = false; withFlip(renderHome, exId); }, 90);
+      setTimeout(() => { toggling = false; withFlip(renderHome, exId); }, 150);
       return;
     }
   }
