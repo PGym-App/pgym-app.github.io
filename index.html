@@ -666,11 +666,11 @@ function withFlip(fn, focusId) {
       const exitY = r.top > maxY ? maxY : r.top < minY ? minY : null;
       let duration, frames;
       if (exitY == null) {
-        duration = Math.min(1050, 650 + Math.abs(dy) * .3);
+        duration = Math.min(800, 480 + Math.abs(dy) * .25);
         frames = [{ transform: 'none' }, { transform: `translateY(${-dy}px)` }];
       } else {
-        const visible = Math.min(1100, 700 + Math.abs(exitY - top0) * .55);
-        duration = visible + 200;
+        const visible = Math.min(800, 500 + Math.abs(exitY - top0) * .4);
+        duration = visible + 150;
         frames = [
           { transform: 'none', easing: 'cubic-bezier(.45,0,.75,.75)' },
           { transform: `translateY(${exitY - top0}px)`, offset: visible / duration, easing: 'linear' },
@@ -693,7 +693,7 @@ function withFlip(fn, focusId) {
         { scale: 1, boxShadow: '0 0 0 rgba(0,0,0,0)' }
       ], { duration, easing: 'ease-in-out' }).finished.then(done, done);
     } else {
-      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 600, easing: 'cubic-bezier(.3,.7,.2,1)', delay: 100, fill: 'backwards' });
+      el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 480, easing: 'cubic-bezier(.3,.7,.2,1)', delay: 80, fill: 'backwards' });
     }
   });
 }
@@ -719,7 +719,7 @@ function toggle(exId) {
     if (el && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
       el.dataset.age = 'done'; el.setAttribute('aria-pressed', 'true');
       save(); toggling = true;
-      setTimeout(() => { toggling = false; withFlip(renderHome, exId); }, 120);
+      setTimeout(() => { toggling = false; withFlip(renderHome, exId); }, 100);
       return;
     }
   }
@@ -818,7 +818,9 @@ function openTraining(date) {
     </div>`, root => {
     root.querySelector('[data-close]').onclick = closeSheet;
     root.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
-      db.log = db.log.filter(e => e.id !== b.dataset.del); save(); renderAll(); openTraining(date);
+      const e = db.log.find(x => x.id === b.dataset.del);
+      if (!e || !confirm(`„${exName(e.exId)}“ wirklich aus dem Training vom ${fmtLong(date)} löschen?`)) return;
+      db.log = db.log.filter(x => x !== e); save(); renderAll(); openTraining(date);
     });
     const add = root.querySelector('#t-add');
     if (add) add.onchange = () => {
@@ -907,7 +909,7 @@ function openExercise(id, presetName = '') {
     name.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
     const del = root.querySelector('#e-del');
     if (del) del.onclick = () => {
-      if (!confirm(`„${ex.name}“ aus der Übersicht entfernen? Dein Verlauf bleibt erhalten.`)) return;
+      if (!confirm(`„${ex.name}“ wirklich löschen? Die Übung verschwindet aus der Übersicht, dein Verlauf bleibt erhalten.`)) return;
       ex.archived = true; save(); closeSheet(); renderAll();
       toast(`${ex.name} entfernt`, () => { ex.archived = false; });
     };
@@ -950,7 +952,7 @@ function openFolder(id, after) {
     const del = root.querySelector('#f-del');
     if (del) del.onclick = () => {
       if (count) { alert(`Der Ordner enthält noch ${count} ${count === 1 ? 'Übung' : 'Übungen'}. Verschiebe oder entferne sie zuerst.`); return; }
-      if (!confirm(`Ordner „${f.name}“ löschen?`)) return;
+      if (!confirm(`Ordner „${f.name}“ wirklich löschen?`)) return;
       db.folders = db.folders.filter(x => x !== f);
       // Archivierte Übungen behalten ihren Verlauf, verweisen aber auf keinen Ordner mehr
       save(); closeSheet(); renderAll();
@@ -1216,7 +1218,8 @@ $('#sync-card').addEventListener('click', e => {
     clearTimeout(pushTimer); sync = { ...EMPTY_SYNC }; saveSync(); renderSync();
   }
 });
-$('#sync-ind').addEventListener('click', () => { go('manage'); $('#sync-section').scrollIntoView({ block: 'start' }); scrollBy(0, -70); });
+// Wolke: zu Verwalten und ganz nach unten (dort liegt die Sicherung)
+$('#sync-ind').addEventListener('click', () => { go('manage'); requestAnimationFrame(() => scrollTo(0, document.documentElement.scrollHeight)); });
 addEventListener('online', () => { syncOffline = false; if (sync.dirty) push(); else pull(); });
 addEventListener('offline', () => { syncOffline = true; renderSync(); });
 setInterval(renderSync, 60000);
@@ -1309,7 +1312,7 @@ renderAll();
 go('home');
 pull(true);
 
-const VERSION = 25; // zusammen mit CACHE in sw.js hochzählen
+const VERSION = 26; // zusammen mit CACHE in sw.js hochzählen
 $('#version').textContent = `PGym · Version ${VERSION}`;
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
